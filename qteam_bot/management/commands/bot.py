@@ -60,7 +60,7 @@ def get_card_message_telegram_req_params(card,likes_btns=True):
         keyboard.append(book_btns)
 
     btn = InlineKeyboardButton(text="⬅️ Назад",
-                               callback_data=json.dumps({'type': 'back_to_plan'}))
+                               callback_data=json.dumps({'type': 'show_planed_activities'}))
     keyboard.append([btn])
 
     return {"text":text,
@@ -126,7 +126,7 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
             BookEveningEvent.objects.create(bot_user=bot_user, card=card, planed_date=date)
 
         query.answer(show_alert=False, text="Активность добавлена в план!")
-        params = get_plan_card_params(bot_user)
+        params = get_plan_card__main_params(bot_user)
 
         context.bot.edit_message_media(media=InputMediaPhoto(settings.PLAN_PHOTO_TELEGRAM_FILE_ID),
                                        chat_id=update.callback_query.message.chat_id,
@@ -135,8 +135,8 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
                                        reply_markup=params['reply_markup'],
                                        parse_mode=params['parse_mode'] )
 
-    if real_data['type'] == 'back_to_plan':
-        params = get_plan_card_params(bot_user)
+    if real_data['type'] == 'back_to_main':
+        params = get_plan_card__main_params(bot_user)
 
         context.bot.edit_message_media(media=InputMediaPhoto(settings.PLAN_PHOTO_TELEGRAM_FILE_ID),
                                        chat_id=update.callback_query.message.chat_id,
@@ -144,6 +144,28 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
         query.edit_message_caption(params['text'],
                                        reply_markup=params['reply_markup'],
                                        parse_mode=params['parse_mode'] )
+
+    if real_data['type'] == 'show_new_activities':
+        params = get_plan_card_activity_list_params(bot_user)
+
+        context.bot.edit_message_media(media=InputMediaPhoto(settings.PLAN_PHOTO_TELEGRAM_FILE_ID),
+                                       chat_id=update.callback_query.message.chat_id,
+                                       message_id=update.callback_query.message.message_id)
+        query.edit_message_caption(params['final_text'],
+                                       reply_markup=params['reply_markup'],
+                                       parse_mode=params['parse_mode'] )
+
+    if real_data['type'] == 'show_planed_activities':
+        context.bot.edit_message_media(media=InputMediaPhoto(settings.PLAN_PHOTO_TELEGRAM_FILE_ID),
+                                       chat_id=update.callback_query.message.chat_id,
+                                       message_id=update.callback_query.message.message_id)
+        query.edit_message_caption(params['text'],
+                                       reply_markup=params['reply_markup'],
+                                       parse_mode=params['parse_mode'] )
+
+
+
+
 
 
 def get_cards_by_user(bot_user):
@@ -216,15 +238,21 @@ def get_user_cards_today(bot_user):
 
     return res_cards
 
-def get_plan_card_params(bot_user):
+def get_plan_card__main_params(bot_user):
     print('get_plan_card_params')
-    
-    keyboard = []
-    res_cards = get_user_cards_today(bot_user)
-    keyboard+=get_cards_btns(res_cards)
-
     final_text = get_user_plans_str(bot_user)
-    final_text += "\nВыберете развлечение для более подробного просмотра:"
+
+    keyboard = []
+    #res_cards = get_user_cards_today(bot_user)
+    #keyboard += get_cards_btns(res_cards)
+    btn_show_new_acts = InlineKeyboardButton(text="️Посмотреть варианты досуга",
+                               callback_data=json.dumps({'type': 'show_new_activities'}))
+    btn_show_planed_acts = InlineKeyboardButton(text="Открыть запланированные",
+                               callback_data=json.dumps({'type': 'show_planed_activities'}))
+
+    keyboard +=[[btn_show_new_acts],[btn_show_planed_acts]]
+
+    #final_text += "\nВыберете развлечение для более подробного просмотра:"
 
     return {
             'text':final_text,
@@ -233,9 +261,25 @@ def get_plan_card_params(bot_user):
     }
 
 
+def get_plan_card_activity_list_params(bot_user):
+    final_text = get_user_plans_str(bot_user)
+    final_text += "\n\n Выбирите активность из списка для просмотра"
 
+    back_btn = InlineKeyboardButton(text="⬅️ Назад",
+                                    callback_data=json.dumps({'type': 'back_to_main'}))
 
+    keyboard = []
+    res_cards = get_user_cards_today(bot_user)
+    keyboard += get_cards_btns(res_cards)
+    keyboard.append([back_btn])
 
+    # final_text += "\nВыберете развлечение для более подробного просмотра:"
+
+    return {
+        'text': final_text,
+        'parse_mode': "Markdown",
+        'reply_markup': InlineKeyboardMarkup(keyboard)
+    }
 
 
 def get_plans(update: Update, context: CallbackContext):
@@ -248,7 +292,7 @@ def get_plans(update: Update, context: CallbackContext):
     except BotUser.MultipleObjectsReturned:
         bot_user = BotUser.objects.filter(bot_user_id=str(bot_user_id))[0]
 
-    plan_req_data = get_plan_card_params(bot_user)
+    plan_req_data = get_plan_card__main_params(bot_user)
 
     with open('qteam_bot/pics/indus_plan.jpg', 'rb') as f :
         msg = update.message.reply_photo(f, caption=plan_req_data['text'],
