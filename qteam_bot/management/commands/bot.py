@@ -15,6 +15,7 @@ from qteam_bot.views import get_next_weekend_and_names, get_cards_ok_to_show_on_
 import json
 from random import shuffle
 from telegram.error import Unauthorized
+from telegram.error import BadRequest
 
 from django.utils import timezone
 import datetime
@@ -428,7 +429,7 @@ class Command(BaseCommand):
 
                 bot.send_photo(bot_user_id,'https://s7.hostingkartinok.com/uploads/images/2014/12/3ad269d96b8e1859c44f1f783a7b9936.jpg',
                                caption=welcome_text, parse_mode="Markdown")
-            except Unauthorized:
+            except (Unauthorized, BadRequest):
                 pass
 
 
