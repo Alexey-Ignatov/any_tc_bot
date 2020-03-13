@@ -153,9 +153,9 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
                                        message_id=update.callback_query.message.message_id)
 
         print("params", params)
-        query.edit_message_caption(params['final_text'],
-                                       reply_markup=params['reply_markup'],
-                                       parse_mode=params['parse_mode'] )
+        query.edit_message_caption(params['final_text'],parse_mode=params['parse_mode'] )
+                                       #reply_markup=params['reply_markup'],
+
 
     if real_data['type'] == 'show_planed_activities':
         context.bot.edit_message_media(media=InputMediaPhoto(settings.PLAN_PHOTO_TELEGRAM_FILE_ID),
