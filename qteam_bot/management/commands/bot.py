@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 from telegram import Bot
 from telegram import Update
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
 from telegram.ext import CallbackContext
 from telegram.ext import CommandHandler, CallbackQueryHandler
 from telegram.ext import Filters
@@ -73,6 +73,7 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
     query = update.callback_query
     data = query.data
 
+
     bot_user_id = update.effective_user.id
     real_data = json.loads(data)
     print('real_data', real_data)
@@ -92,8 +93,23 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
 
 
     if real_data['type'] == 'show':
-        params =get_card_message_telegram_req_params(card)
-        query.edit_message_text(text=params['text'], parse_mode=params['parse_mode'], reply_markup=params['reply_markup'])
+        #params =get_card_message_telegram_req_params(card)
+        #update.message.edit_message_text(f, caption=welcome_text, parse_mode="Markdown")
+        #query.edit_message_text(text=params['text'], parse_mode=params['parse_mode'], reply_markup=params['reply_markup'])
+        #context.bot.send_message(chat_id=update.effective_chat.id, text=static"I'm a bot, please talk to me!")
+        f = open('qteam_bot/pics/man-2087782_1920.jpg', 'rb')
+        #with open('qteam_bot/pics/10.png', 'rb') as f:
+        context.bot.edit_message_media(media=InputMediaPhoto("https://st.depositphotos.com/1535089/4724/i/950/depositphotos_47243555-stock-photo-indian-man.jpg"),
+                                     chat_id=update.callback_query.message.chat_id,
+                                     message_id=update.callback_query.message.message_id)
+        #with open('qteam_bot/pics/10.png', 'rb') as f:
+        #query.edit_message_caption('adsfds')
+        #context.bot.edit_message_caption(caption='haha',
+        #                         chat_id=update.callback_query.message.chat_id,
+        #                         message_id=update.callback_query.message.message_id)
+        #context.bot.edit_message_caption(chat_id=update.callback_query.message.chat_id,
+        #                                 message_id=update.callback_query.message.message_id,
+
 
     if real_data['type'] == 'like':
         CardLike.objects.create(bot_user=bot_user, date=timezone.now() + datetime.timedelta(hours=3), card=card)
@@ -204,7 +220,13 @@ def get_plans(update: Update, context: CallbackContext):
     except BotUser.MultipleObjectsReturned:
         bot_user = BotUser.objects.filter(bot_user_id=str(bot_user_id))[0]
 
-    update.message.reply_text(**get_plan_card_params(bot_user))
+    plan_req_data = get_plan_card_params(bot_user)
+
+    with open('qteam_bot/pics/indus_plan.jpg', 'rb') as f :
+        update.message.reply_photo(f, caption=plan_req_data['text'],
+                                   parse_mode=plan_req_data['parse_mode'],
+                                   reply_markup=plan_req_data['reply_markup'])
+    update.message.reply_photo()
 
 
 
@@ -244,7 +266,7 @@ def handle_welcome(update: Update, context: CallbackContext):
                    "💡Я напомню что нужно спланировать выходные и предложу варианты по вашим вкусам.\n\n" \
                    "🔥Введите /plan проверить свои планы  на подобрать что-то новое.\n" \
                    "😎Каждый день для вас будут подбираться новые активности.\n\n" \
-                   "👍Обязательно лайкайте и дизлайкайте активности! На основе этого я строю рекомендации.\ngetweekendschedule" \
+                   "👍Обязательно лайкайте и дизлайкайте активности! На основе этого я строю рекомендации.\n" \
                    "👌После того как вы выбрали активность, вносите их в план, чтобы я был спокоен за ваши выходные и не напоминал вам их планировать!"
     f = open('qteam_bot/pics/man-2087782_1920.jpg', 'rb')
 
