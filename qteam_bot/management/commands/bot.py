@@ -100,10 +100,10 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
         context.bot.edit_message_media(media=InputMediaPhoto(card.pic_file_id),
                                        chat_id=update.callback_query.message.chat_id,
                                        message_id=update.callback_query.message.message_id,
-                                       parse_mode=params['parse_mode'],
-                                       reply_markup=params['reply_markup'] )
+                                       parse_mode=params['parse_mode'])
         #with open('qteam_bot/pics/10.png', 'rb') as f:
-        query.edit_message_caption(params['text'])
+        query.edit_message_caption(params['text'],
+                                       reply_markup=params['reply_markup'] )
         #context.bot.edit_message_caption(caption='haha',
         #                         chat_id=update.callback_query.message.chat_id,
         #                         message_id=update.callback_query.message.message_id)
@@ -125,16 +125,22 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
             BookEveningEvent.objects.get(bot_user=bot_user, card=card, planed_date=date)
         except BookEveningEvent.DoesNotExist:
             BookEveningEvent.objects.create(bot_user=bot_user, card=card, planed_date=date)
+            
         query.answer(show_alert=False, text="Активность добавлена в план!")
-        params = get_plan_card_params(bot_user)
-        query.edit_message_text(text=params['text'], parse_mode=params['parse_mode'],
-                                reply_markup=params['reply_markup'])
+        plan_req_data = get_plan_card_params(bot_user)
+
+        with open('qteam_bot/pics/indus_plan.jpg', 'rb') as f:
+            update.message.reply_photo(f, caption=plan_req_data['text'],
+                                       parse_mode=plan_req_data['parse_mode'],
+                                       reply_markup=plan_req_data['reply_markup'])
 
     if real_data['type'] == 'back_to_plan':
-        print('from back_to_plan')
-        params = get_plan_card_params(bot_user)
-        query.edit_message_text(text=params['text'], parse_mode=params['parse_mode'],
-                                reply_markup=params['reply_markup'])
+        plan_req_data = get_plan_card_params(bot_user)
+
+        with open('qteam_bot/pics/indus_plan.jpg', 'rb') as f:
+            update.message.reply_photo(f, caption=plan_req_data['text'],
+                                       parse_mode=plan_req_data['parse_mode'],
+                                       reply_markup=plan_req_data['reply_markup'])
 
 
 def get_cards_by_user(bot_user):
@@ -226,7 +232,7 @@ def get_plans(update: Update, context: CallbackContext):
         update.message.reply_photo(f, caption=plan_req_data['text'],
                                    parse_mode=plan_req_data['parse_mode'],
                                    reply_markup=plan_req_data['reply_markup'])
-    update.message.reply_photo()
+
 
 
 
