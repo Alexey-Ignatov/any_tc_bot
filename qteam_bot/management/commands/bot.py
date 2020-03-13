@@ -84,9 +84,9 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
         bot_user = BotUser.objects.get(bot_user_id=str(bot_user_id))
     except BotUser.DoesNotExist:
         bot_user = BotUser.objects.create(bot_user_id=str(bot_user_id),
-                                          first_name=update.message.from_user.first_name,
-                                          last_name=update.message.from_user.last_name,
-                                          username=update.message.from_user.username)
+                                          first_name=update.message.from_user.first_name if update.message.from_user.first_name else "" ,
+                                          last_name=update.message.from_user.last_name if update.message.from_user.last_name else "",
+                                          username=update.message.from_user.username if update.message.from_user.username else "")
     except BotUser.MultipleObjectsReturned:
         bot_user = BotUser.objects.filter(bot_user_id=str(bot_user_id))[0]
 
@@ -351,9 +351,9 @@ def get_plans(update: Update, context: CallbackContext):
         bot_user = BotUser.objects.get(bot_user_id=str(bot_user_id))
     except BotUser.DoesNotExist:
         bot_user = BotUser.objects.create(bot_user_id=str(bot_user_id),
-                                          first_name=update.message.from_user.first_name,
-                                          last_name=update.message.from_user.last_name,
-                                          username=update.message.from_user.username)
+                                          first_name=update.message.from_user.first_name if update.message.from_user.first_name else "" ,
+                                          last_name=update.message.from_user.last_name if update.message.from_user.last_name else "",
+                                          username=update.message.from_user.username if update.message.from_user.username else "")
     except BotUser.MultipleObjectsReturned:
         bot_user = BotUser.objects.filter(bot_user_id=str(bot_user_id))[0]
 
@@ -377,11 +377,10 @@ def handle_welcome(update: Update, context: CallbackContext):
     bot_user_id = update.message.from_user.id
     try:
         bot_user = BotUser.objects.get(bot_user_id=str(bot_user_id))
-    except BotUser.DoesNotExist:
         bot_user = BotUser.objects.create(bot_user_id=str(bot_user_id),
-                                          first_name=update.message.from_user.first_name,
-                                          last_name=update.message.from_user.last_name,
-                                          username=update.message.from_user.username)
+                                          first_name=update.message.from_user.first_name if update.message.from_user.first_name else "" ,
+                                          last_name=update.message.from_user.last_name if update.message.from_user.last_name else "",
+                                          username=update.message.from_user.username if update.message.from_user.username else "")
     except BotUser.MultipleObjectsReturned:
         bot_user = BotUser.objects.filter(bot_user_id=str(bot_user_id))[0]
 
