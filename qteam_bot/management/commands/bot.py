@@ -273,9 +273,9 @@ def get_plan_card__main_params(bot_user):
     keyboard = []
     #res_cards = get_user_cards_today(bot_user)
     #keyboard += get_cards_btns(res_cards)
-    btn_show_new_acts = InlineKeyboardButton(text="️Посмотреть варианты досуга",
+    btn_show_new_acts = InlineKeyboardButton(text="️🥁Посмотреть варианты досуга",
                                callback_data=json.dumps({'type': 'show_new_activities'}))
-    btn_show_planed_acts = InlineKeyboardButton(text="Открыть запланированные",
+    btn_show_planed_acts = InlineKeyboardButton(text="🧳Открыть запланированные",
                                callback_data=json.dumps({'type': 'show_planed_activities'}))
 
     keyboard +=[[btn_show_new_acts],[btn_show_planed_acts]]
