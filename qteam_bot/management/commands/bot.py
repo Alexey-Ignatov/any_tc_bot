@@ -10,6 +10,7 @@ from telegram.ext import MessageHandler
 from telegram.ext import Updater
 from telegram.utils.request import Request
 from qteam_bot.models import BotUser,BookEveningEvent, CardLike, CardDislike, Card, DateUserCardSet,CardDate
+from qteam_bot.models import OpenCardEvent, GetCardsEvent,GetPlansEvent,StartEvent
 from qteam_bot.views import get_next_weekend_and_names, get_cards_ok_to_show_on_date
 import json
 from random import shuffle
@@ -60,7 +61,7 @@ def get_card_message_telegram_req_params(card,likes_btns=True):
         keyboard.append(book_btns)
 
     btn = InlineKeyboardButton(text="⬅️ Назад",
-                               callback_data=json.dumps({'type': 'show_new_activities'}))
+                               callback_data=json.dumps({'type': 'show_new_activities_from_card'}))
     keyboard.append([btn])
 
     return {"text":text,
@@ -81,7 +82,10 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
     try:
         bot_user = BotUser.objects.get(bot_user_id=str(bot_user_id))
     except BotUser.DoesNotExist:
-        bot_user = BotUser.objects.create(bot_user_id=str(bot_user_id))
+        bot_user = BotUser.objects.create(bot_user_id=str(bot_user_id),
+                                          first_name=update.message.from_user.first_name,
+                                          last_name=update.message.from_user.last_name,
+                                          username=update.message.from_user.username)
     except BotUser.MultipleObjectsReturned:
         bot_user = BotUser.objects.filter(bot_user_id=str(bot_user_id))[0]
 
@@ -93,6 +97,7 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
 
 
     if real_data['type'] == 'show':
+        OpenCardEvent.objects.create(bot_user=bot_user, card=card)
         params =get_card_message_telegram_req_params(card)
         #update.message.edit_message_text(f, caption=welcome_text, parse_mode="Markdown")
         #query.edit_message_text(text=params['text'], parse_mode=params['parse_mode'], reply_markup=params['reply_markup'])
@@ -145,7 +150,20 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
                                        reply_markup=params['reply_markup'],
                                        parse_mode=params['parse_mode'] )
 
-    if real_data['type'] == 'show_new_activities':
+    if real_data['type'] == 'show_new_activities_from_main':
+        GetCardsEvent.objects.create(bot_user=bot_user)
+        params = get_plan_card_activity_list_params(bot_user)
+
+        context.bot.edit_message_media(media=InputMediaPhoto(settings.PLAN_PHOTO_TELEGRAM_FILE_ID),
+                                       chat_id=update.callback_query.message.chat_id,
+                                       message_id=update.callback_query.message.message_id)
+
+        print("params", params)
+        query.edit_message_caption(params['text'],
+                                    reply_markup=params['reply_markup'],
+                                   parse_mode = params['parse_mode'] )
+
+    if real_data['type'] == 'show_new_activities_from_card':
         params = get_plan_card_activity_list_params(bot_user)
 
         context.bot.edit_message_media(media=InputMediaPhoto(settings.PLAN_PHOTO_TELEGRAM_FILE_ID),
@@ -217,7 +235,7 @@ def get_cards_by_user(bot_user):
 
     shuffle(special_date_cards)
     shuffle(another_cards_list)
-    
+
     return special_date_cards[:3]+another_cards_list[:2]
 
 
@@ -287,7 +305,7 @@ def get_plan_card__main_params(bot_user):
     #res_cards = get_user_cards_today(bot_user)
     #keyboard += get_cards_btns(res_cards)
     btn_show_new_acts = InlineKeyboardButton(text="️🥁Посмотреть варианты досуга",
-                               callback_data=json.dumps({'type': 'show_new_activities'}))
+                               callback_data=json.dumps({'type': 'show_new_activities_from_main'}))
     btn_show_planed_acts = InlineKeyboardButton(text="🧳Открыть запланированные",
                                callback_data=json.dumps({'type': 'show_planed_activities'}))
 
@@ -331,10 +349,14 @@ def get_plans(update: Update, context: CallbackContext):
     try:
         bot_user = BotUser.objects.get(bot_user_id=str(bot_user_id))
     except BotUser.DoesNotExist:
-        bot_user = BotUser.objects.create(bot_user_id=str(bot_user_id))
+        bot_user = BotUser.objects.create(bot_user_id=str(bot_user_id),
+                                          first_name=update.message.from_user.first_name,
+                                          last_name=update.message.from_user.last_name,
+                                          username=update.message.from_user.username)
     except BotUser.MultipleObjectsReturned:
         bot_user = BotUser.objects.filter(bot_user_id=str(bot_user_id))[0]
 
+    GetPlansEvent.objects.create(bot_user=bot_user)
     plan_req_data = get_plan_card__main_params(bot_user)
 
     with open('qteam_bot/pics/indus_plan.jpg', 'rb') as f :
@@ -351,6 +373,19 @@ def get_plans(update: Update, context: CallbackContext):
 
 @log_errors
 def handle_welcome(update: Update, context: CallbackContext):
+    bot_user_id = update.message.from_user.id
+    try:
+        bot_user = BotUser.objects.get(bot_user_id=str(bot_user_id))
+    except BotUser.DoesNotExist:
+        bot_user = BotUser.objects.create(bot_user_id=str(bot_user_id),
+                                          first_name=update.message.from_user.first_name,
+                                          last_name=update.message.from_user.last_name,
+                                          username=update.message.from_user.username)
+    except BotUser.MultipleObjectsReturned:
+        bot_user = BotUser.objects.filter(bot_user_id=str(bot_user_id))[0]
+
+    StartEvent.objects.create(bot_user=bot_user)
+
     welcome_text = "*Привет, я QteamBot 👋*\n" \
                    "🎯🗓 Чтобы провести выходные весело и полезно, их нужно обязательно спланировать заранее.\n" \
                    "💡Я напомню что нужно спланировать выходные и предложу варианты по вашим вкусам.\n\n" \

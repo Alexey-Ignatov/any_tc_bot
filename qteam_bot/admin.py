@@ -3,6 +3,7 @@ from django.contrib import admin
 # Register your models here.
 from django.contrib import admin
 from .models import Card, CardLike, CardDislike,BotUser,BotUserToCardCategory, CardCategory,BookEveningEvent,CardDate,DateUserCardSet
+from .models import OpenCardEvent, GetCardsEvent,GetPlansEvent,StartEvent
 import json
 from .views import get_cards_ok_to_show_on_date,get_next_weekend_and_names
 
@@ -62,7 +63,7 @@ class CardDislikeAdmin(admin.ModelAdmin):
 
 @admin.register(BotUser)
 class BotUserAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('bot_user_id', 'first_name', 'last_name', 'username')
 
 
 @admin.register(BotUserToCardCategory)
@@ -74,9 +75,24 @@ class BotUserToCardCategoryAdmin(admin.ModelAdmin):
 class DateUserCardSetAdmin(admin.ModelAdmin):
     pass
 
+@admin.register(OpenCardEvent)
+class OpenCardEventAdmin(admin.ModelAdmin):
+    pass
 
 
+@admin.register(OpenCardEvent)
+class OpenCardEventAdmin(admin.ModelAdmin):
+    pass
 
+@admin.register(GetCardsEvent)
+class GetCardsEventAdmin(admin.ModelAdmin):
+    pass
 
+@admin.register(GetPlansEvent)
+class GetPlansEventAdmin(admin.ModelAdmin):
+    pass
 
+@admin.register(StartEvent)
+class StartEventAdmin(admin.ModelAdmin):
+    pass
 

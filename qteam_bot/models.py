@@ -45,8 +45,11 @@ class CardDate(models.Model):
         return self.card.title + " " + str(self.date)
 
 class BotUser(models.Model):
-    bot_user_id    = models.CharField(max_length=100)
+    bot_user_id  = models.CharField(max_length=100)
     main_resp_path = models.CharField(max_length=100)
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    username = models.CharField(max_length=100)
 
     def __str__(self):
         return str(self.id) + ' '+  str(self.bot_user_id)
@@ -93,3 +96,33 @@ class DateUserCardSet(models.Model):
 
     def __str__(self):
         return str(self.bot_user.bot_user_id) + ' ' + self.card_ids
+
+
+
+
+class OpenCardEvent(models.Model):
+    bot_user = models.ForeignKey(BotUser, on_delete=models.CASCADE)
+    card = models.ForeignKey(Card, on_delete=models.CASCADE)
+    date_added = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return str(self.bot_user.bot_user_id) + ' ' + str(self.date_added)
+
+
+class GetCardsEvent(models.Model):
+    bot_user = models.ForeignKey(BotUser, on_delete=models.CASCADE)
+    date_added = models.DateTimeField(auto_now_add=True)
+    def __str__(self):
+        return str(self.bot_user.bot_user_id) + ' ' + str(self.date_added)
+
+class GetPlansEvent(models.Model):
+    bot_user = models.ForeignKey(BotUser, on_delete=models.CASCADE)
+    date_added = models.DateTimeField(auto_now_add=True)
+    def __str__(self):
+        return str(self.bot_user.bot_user_id) + ' ' + str(self.date_added)
+
+class StartEvent(models.Model):
+    bot_user = models.ForeignKey(BotUser, on_delete=models.CASCADE)
+    date_added = models.DateTimeField(auto_now_add=True)
+    def __str__(self):
+        return str(self.bot_user.bot_user_id) + ' ' + str(self.date_added)
