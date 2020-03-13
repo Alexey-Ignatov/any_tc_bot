@@ -14,6 +14,7 @@ from qteam_bot.models import OpenCardEvent, GetCardsEvent,GetPlansEvent,StartEve
 from qteam_bot.views import get_next_weekend_and_names, get_cards_ok_to_show_on_date
 import json
 from random import shuffle
+from telegram.error import Unauthorized
 
 from django.utils import timezone
 import datetime
@@ -418,14 +419,17 @@ class Command(BaseCommand):
 
         bot_user_id_list= [int('733585869')]
         for bot_user_id in bot_user_id_list:
-            welcome_text = "*👋Привет!* \n" \
-                           "🛠Мы доработали нашего бота, отталкиваясь то ваших пожелний!\n" \
-                           "🎁А еще добаили новых интересных активностей.\n" \
-                           "🎉Впереди выходные, наш бот как раз будет кстати!\n" \
-                           "🧨 Нажмите /start , чтобы посмотреть что изменилось!"
+            try:
+                welcome_text = "*👋Привет!* \n" \
+                               "🛠Мы доработали нашего бота, отталкиваясь то ваших пожелний!\n" \
+                               "🎁А еще добаили новых интересных активностей.\n" \
+                               "🎉Впереди выходные, наш бот как раз будет кстати!\n" \
+                               "🧨 Нажмите /start , чтобы посмотреть что изменилось!"
 
-            bot.send_photo(bot_user_id,'https://s7.hostingkartinok.com/uploads/images/2014/12/3ad269d96b8e1859c44f1f783a7b9936.jpg',
-                           caption=welcome_text, parse_mode="Markdown")
+                bot.send_photo(bot_user_id,'https://s7.hostingkartinok.com/uploads/images/2014/12/3ad269d96b8e1859c44f1f783a7b9936.jpg',
+                               caption=welcome_text, parse_mode="Markdown")
+            except Unauthorized:
+                pass
 
 
 
