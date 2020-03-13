@@ -186,8 +186,8 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
 
 def get_user_weekend_planed_cards(bot_user):
     dates_list = get_next_weekend_and_names()
+    day_plans_text_list = []
     for date_dict in dates_list:
-        day_plans_text_list = []
         day_book_events = BookEveningEvent.objects.filter(planed_date=date_dict['date'], bot_user=bot_user)
         for event in day_book_events:
             day_plans_text_list.append(event.card)
