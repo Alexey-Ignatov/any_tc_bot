@@ -53,7 +53,7 @@ def get_card_message_telegram_req_params(card,likes_btns=True):
         keyboard.append(likes_btns)
 
     for date_dict in weekends:
-        if card not in get_possible_cards_on_weekend():
+        if card not in get_cards_ok_to_show_on_date(date=date_dict['date']):
             continue
         book_btns =[InlineKeyboardButton(text="✅ В план на {}".format(date_dict['date_text']),
                                          callback_data=json.dumps({'card_id': card.id, 'date': str(date_dict['date']), 'type':'book'}))]
