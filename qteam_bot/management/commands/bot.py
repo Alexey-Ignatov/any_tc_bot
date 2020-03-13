@@ -99,11 +99,10 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
         #context.bot.send_message(chat_id=update.effective_chat.id, text=static"I'm a bot, please talk to me!")
         context.bot.edit_message_media(media=InputMediaPhoto(card.pic_file_id),
                                        chat_id=update.callback_query.message.chat_id,
-                                       message_id=update.callback_query.message.message_id,
-                                       parse_mode=params['parse_mode'])
-        #with open('qteam_bot/pics/10.png', 'rb') as f:
+                                       message_id=update.callback_query.message.message_id)
         query.edit_message_caption(params['text'],
-                                       reply_markup=params['reply_markup'] )
+                                       reply_markup=params['reply_markup'],
+                                       parse_mode=params['parse_mode'] )
         #context.bot.edit_message_caption(caption='haha',
         #                         chat_id=update.callback_query.message.chat_id,
         #                         message_id=update.callback_query.message.message_id)
@@ -125,22 +124,26 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
             BookEveningEvent.objects.get(bot_user=bot_user, card=card, planed_date=date)
         except BookEveningEvent.DoesNotExist:
             BookEveningEvent.objects.create(bot_user=bot_user, card=card, planed_date=date)
-            
-        query.answer(show_alert=False, text="Активность добавлена в план!")
-        plan_req_data = get_plan_card_params(bot_user)
 
-        with open('qteam_bot/pics/indus_plan.jpg', 'rb') as f:
-            update.message.reply_photo(f, caption=plan_req_data['text'],
-                                       parse_mode=plan_req_data['parse_mode'],
-                                       reply_markup=plan_req_data['reply_markup'])
+        query.answer(show_alert=False, text="Активность добавлена в план!")
+        params = get_plan_card_params(bot_user)
+
+        context.bot.edit_message_media(media=InputMediaPhoto(settings.PLAN_PHOTO_TELEGRAM_FILE_ID),
+                                       chat_id=update.callback_query.message.chat_id,
+                                       message_id=update.callback_query.message.message_id)
+        query.edit_message_caption(params['text'],
+                                       reply_markup=params['reply_markup'],
+                                       parse_mode=params['parse_mode'] )
 
     if real_data['type'] == 'back_to_plan':
-        plan_req_data = get_plan_card_params(bot_user)
+        params = get_plan_card_params(bot_user)
 
-        with open('qteam_bot/pics/indus_plan.jpg', 'rb') as f:
-            update.message.reply_photo(f, caption=plan_req_data['text'],
-                                       parse_mode=plan_req_data['parse_mode'],
-                                       reply_markup=plan_req_data['reply_markup'])
+        context.bot.edit_message_media(media=InputMediaPhoto(settings.PLAN_PHOTO_TELEGRAM_FILE_ID),
+                                       chat_id=update.callback_query.message.chat_id,
+                                       message_id=update.callback_query.message.message_id)
+        query.edit_message_caption(params['text'],
+                                       reply_markup=params['reply_markup'],
+                                       parse_mode=params['parse_mode'] )
 
 
 def get_cards_by_user(bot_user):
@@ -229,9 +232,11 @@ def get_plans(update: Update, context: CallbackContext):
     plan_req_data = get_plan_card_params(bot_user)
 
     with open('qteam_bot/pics/indus_plan.jpg', 'rb') as f :
-        update.message.reply_photo(f, caption=plan_req_data['text'],
+        msg = update.message.reply_photo(f, caption=plan_req_data['text'],
                                    parse_mode=plan_req_data['parse_mode'],
                                    reply_markup=plan_req_data['reply_markup'])
+
+    settings.PLAN_PHOTO_TELEGRAM_FILE_ID = msg.photo[0].file_id
 
 
 
