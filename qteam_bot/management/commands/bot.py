@@ -176,15 +176,10 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
 
         # final_text += "\nВыберете развлечение для более подробного просмотра:"
 
-        return {
-            'text': get_user_plans_str(bot_user),
-            'parse_mode': "Markdown",
-            'reply_markup': InlineKeyboardMarkup(keyboard)
-        }
 
-        query.edit_message_caption(params['text'],
-                                       reply_markup=params['reply_markup'],
-                                       parse_mode=params['parse_mode'] )
+        query.edit_message_caption(final_text,
+                                       reply_markup=InlineKeyboardMarkup(keyboard),
+                                       parse_mode="Markdown")
 
 
 
