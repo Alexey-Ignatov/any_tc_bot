@@ -167,7 +167,7 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
         keyboard  = get_cards_btns(res_cards)
 
         final_text = get_user_plans_str(bot_user)
-        final_text += "Выбирите активность из списка для просмотра"
+        final_text += "\nВыбирите активность из списка для просмотра"
 
         back_btn = InlineKeyboardButton(text="⬅️ Назад",
                                         callback_data=json.dumps({'type': 'back_to_main'}))
@@ -291,7 +291,7 @@ def get_plan_card__main_params(bot_user):
 
 def get_plan_card_activity_list_params(bot_user):
     final_text = get_user_plans_str(bot_user)
-    final_text += "\n\n Выбирите активность из списка для просмотра"
+    final_text += "\nВыбирите активность из списка для просмотра"
 
     back_btn = InlineKeyboardButton(text="⬅️ Назад",
                                     callback_data=json.dumps({'type': 'back_to_main'}))
