@@ -417,7 +417,7 @@ class Command(BaseCommand):
         print(bot.get_me())
 
 
-        bot_user_id_list= [int('733585869')]
+        bot_user_id_list= [int(bot_user.bot_user_id) for bot_user in BotUser.objects.all() ]
         for bot_user_id in bot_user_id_list:
             try:
                 welcome_text = "*👋Привет!* \n" \
