@@ -8,7 +8,7 @@ from .views import get_cards_ok_to_show_on_date,get_next_weekend_and_names
 
 @admin.register(Card)
 class CardAdmin(admin.ModelAdmin):
-    list_display= ('title', 'num_likes', 'num_dislikes',  'num_shows', 'is_available_now','is_active')
+    list_display= ('id','title', 'num_likes', 'num_dislikes',  'num_shows', 'is_active','is_available_now')
 
 
     def num_likes(self, obj):

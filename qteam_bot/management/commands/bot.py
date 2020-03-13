@@ -9,7 +9,7 @@ from telegram.ext import Filters
 from telegram.ext import MessageHandler
 from telegram.ext import Updater
 from telegram.utils.request import Request
-from qteam_bot.models import BotUser,BookEveningEvent, CardLike, CardDislike, Card
+from qteam_bot.models import BotUser,BookEveningEvent, CardLike, CardDislike, Card, DateUserCardSet
 from qteam_bot.views import get_next_weekend_and_names, get_cards_ok_to_show_on_date
 import json
 from random import shuffle
@@ -37,7 +37,6 @@ def get_possible_cards_on_weekend(individual_stop_list=[]):
     for date_dict in weekends:
         res_dict+=get_cards_ok_to_show_on_date(date=date_dict['date'])
 
-    print('res_dict', res_dict)
     return list(set(res_dict) - set(individual_stop_list))
 
 
@@ -82,6 +81,8 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
         bot_user = BotUser.objects.get(bot_user_id=str(bot_user_id))
     except BotUser.DoesNotExist:
         bot_user = BotUser.objects.create(bot_user_id=str(bot_user_id))
+    except BotUser.MultipleObjectsReturned:
+        bot_user = BotUser.objects.filter(bot_user_id=str(bot_user_id))[0]
 
     try:
         if 'card_id' in real_data:
@@ -120,10 +121,7 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
                                 reply_markup=params['reply_markup'])
 
 
-def get_plan_card_params(bot_user):
-    print('bot_user', bot_user)
-
-    dates_list = get_next_weekend_and_names()
+def get_cards_by_user(bot_user):
 
     liked_cards = [like.card for like in CardLike.objects.filter(bot_user=bot_user)]
     disliked_cards = [like.card for like in CardDislike.objects.filter(bot_user=bot_user)]
@@ -132,8 +130,26 @@ def get_plan_card_params(bot_user):
 
     shuffle(res_cards)
     res_cards = res_cards[:5]
+    return res_cards
 
-    print(res_cards)
+def get_plan_card_params(bot_user):
+    print('get_plan_card_params')
+    try:
+        date_user_card_set = DateUserCardSet.objects.get(bot_user=bot_user, date=(
+                    datetime.datetime.now() + datetime.timedelta(hours=3)).date())
+        card_id_list = json.loads(date_user_card_set.card_ids)
+        res_cards = Card.objects.filter(pk__in=card_id_list).order_by('id')
+        print('get_plan_card_params:from try')
+    except DateUserCardSet.DoesNotExist:
+        res_cards = get_cards_by_user(bot_user)
+        res_cards.sort(key=lambda x: x.id, reverse=False)
+
+        res_cards_ids = [card.id for card in res_cards]
+        DateUserCardSet.objects.create(bot_user=bot_user, date=(datetime.datetime.now() + datetime.timedelta(hours=3)).date(), card_ids=json.dumps(res_cards_ids))
+
+        print('get_plan_card_params:first time')
+
+    dates_list = get_next_weekend_and_names()
     emodzi_list = ["🍕", "️💥", "🔥", "🧠", "👻",
                    "👌", "🥋", "🎣", "⛳", "️🎱", "🏋",
                    "️‍️🛹", "🥌", "🥁", "🎼", "🎯", "🎳",
@@ -185,6 +201,8 @@ def get_plans(update: Update, context: CallbackContext):
         bot_user = BotUser.objects.get(bot_user_id=str(bot_user_id))
     except BotUser.DoesNotExist:
         bot_user = BotUser.objects.create(bot_user_id=str(bot_user_id))
+    except BotUser.MultipleObjectsReturned:
+        bot_user = BotUser.objects.filter(bot_user_id=str(bot_user_id))[0]
 
     update.message.reply_text(**get_plan_card_params(bot_user))
 
