@@ -100,11 +100,10 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
         context.bot.edit_message_media(media=InputMediaPhoto(card.pic_file_id),
                                        chat_id=update.callback_query.message.chat_id,
                                        message_id=update.callback_query.message.message_id,
-                                       caption=params['text'],
                                        parse_mode=params['parse_mode'],
                                        reply_markup=params['reply_markup'] )
         #with open('qteam_bot/pics/10.png', 'rb') as f:
-        #query.edit_message_caption('adsfds')
+        query.edit_message_caption(params['text'])
         #context.bot.edit_message_caption(caption='haha',
         #                         chat_id=update.callback_query.message.chat_id,
         #                         message_id=update.callback_query.message.message_id)
