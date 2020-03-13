@@ -99,7 +99,7 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
 
 
     if real_data['type'] == 'show':
-        OpenCardEvent.objects.create(bot_user=bot_user, card=card)
+        #OpenCardEvent.objects.create(bot_user=bot_user, card=card)
         params =get_card_message_telegram_req_params(card)
         #update.message.edit_message_text(f, caption=welcome_text, parse_mode="Markdown")
         #query.edit_message_text(text=params['text'], parse_mode=params['parse_mode'], reply_markup=params['reply_markup'])
