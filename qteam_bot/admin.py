@@ -79,11 +79,6 @@ class DateUserCardSetAdmin(admin.ModelAdmin):
 class OpenCardEventAdmin(admin.ModelAdmin):
     pass
 
-
-@admin.register(OpenCardEvent)
-class OpenCardEventAdmin(admin.ModelAdmin):
-    pass
-
 @admin.register(GetCardsEvent)
 class GetCardsEventAdmin(admin.ModelAdmin):
     pass
