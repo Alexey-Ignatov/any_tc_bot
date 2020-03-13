@@ -100,7 +100,9 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
 
     if real_data['type'] == 'show':
         #OpenCardEvent.objects.create(bot_user=bot_user, card=card)
+        print('card', card)
         params =get_card_message_telegram_req_params(card)
+        print('params', params)
         #update.message.edit_message_text(f, caption=welcome_text, parse_mode="Markdown")
         #query.edit_message_text(text=params['text'], parse_mode=params['parse_mode'], reply_markup=params['reply_markup'])
         #context.bot.send_message(chat_id=update.effective_chat.id, text=static"I'm a bot, please talk to me!")
@@ -417,20 +419,6 @@ class Command(BaseCommand):
         )
         print(bot.get_me())
 
-
-        bot_user_id_list= [int(bot_user.bot_user_id) for bot_user in BotUser.objects.all() ]
-        for bot_user_id in bot_user_id_list:
-            try:
-                welcome_text = "*👋Привет!* \n" \
-                               "🛠Мы доработали нашего бота, отталкиваясь то ваших пожелний!\n" \
-                               "🎁А еще добаили новых интересных активностей.\n" \
-                               "🎉Впереди выходные, наш бот как раз будет кстати!\n" \
-                               "🧨 Нажмите /start , чтобы посмотреть что изменилось!"
-
-                bot.send_photo(bot_user_id,'https://s7.hostingkartinok.com/uploads/images/2014/12/3ad269d96b8e1859c44f1f783a7b9936.jpg',
-                               caption=welcome_text, parse_mode="Markdown")
-            except (Unauthorized, BadRequest):
-                pass
 
 
 
