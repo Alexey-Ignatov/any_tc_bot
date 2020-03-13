@@ -25,7 +25,9 @@ SECRET_KEY = 'k9uvedl1*a2v469y6!i#ky&wqlbe-*5@(#k2oq+@xuvn2fcktv'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    '45.11.24.157',
+    'localhost']
 
 
 # Application definition
@@ -133,4 +135,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
 STATIC_URL = '/static/'
+
+STATIC_ROOT = '/home/www/td/static/'
+
 TOKEN = '933432063:AAEEpMlhBXxveo6U-OBwX8p187als-1BesA'
+#PROXY_URL = 'https://telegg.ru/orig/bot'
