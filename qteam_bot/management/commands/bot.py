@@ -377,6 +377,7 @@ def handle_welcome(update: Update, context: CallbackContext):
     bot_user_id = update.message.from_user.id
     try:
         bot_user = BotUser.objects.get(bot_user_id=str(bot_user_id))
+    except BotUser.DoesNotExist:
         bot_user = BotUser.objects.create(bot_user_id=str(bot_user_id),
                                           first_name=update.message.from_user.first_name if update.message.from_user.first_name else "" ,
                                           last_name=update.message.from_user.last_name if update.message.from_user.last_name else "",
