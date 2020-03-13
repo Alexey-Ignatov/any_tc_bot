@@ -162,12 +162,42 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
         context.bot.edit_message_media(media=InputMediaPhoto(settings.PLAN_PHOTO_TELEGRAM_FILE_ID),
                                        chat_id=update.callback_query.message.chat_id,
                                        message_id=update.callback_query.message.message_id)
+
+        res_cards = get_user_weekend_planed_cards(bot_user)
+        keyboard  = get_cards_btns(res_cards)
+
+        final_text = get_user_plans_str(bot_user)
+        final_text += "\n\n Выбирите активность из списка для просмотра"
+
+        back_btn = InlineKeyboardButton(text="⬅️ Назад",
+                                        callback_data=json.dumps({'type': 'back_to_main'}))
+
+        keyboard.append([back_btn])
+
+        # final_text += "\nВыберете развлечение для более подробного просмотра:"
+
+        return {
+            'text': get_user_plans_str(bot_user),
+            'parse_mode': "Markdown",
+            'reply_markup': InlineKeyboardMarkup(keyboard)
+        }
+
         query.edit_message_caption(params['text'],
                                        reply_markup=params['reply_markup'],
                                        parse_mode=params['parse_mode'] )
 
 
 
+
+def get_user_weekend_planed_cards(bot_user):
+    dates_list = get_next_weekend_and_names()
+    for date_dict in dates_list:
+        day_plans_text_list = []
+        day_book_events = BookEveningEvent.objects.filter(planed_date=date_dict['date'], bot_user=bot_user)
+        for event in day_book_events:
+            day_plans_text_list.append(event.card)
+
+    return list(set(day_plans_text_list))
 
 
 
