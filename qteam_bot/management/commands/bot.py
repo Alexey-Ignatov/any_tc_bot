@@ -336,33 +336,6 @@ def get_plans(update: Update, context: CallbackContext):
 
 
 
-
-
-
-@log_errors
-def do_echo(update: Update, context: CallbackContext):
-    chat_id = update.message.from_user.id
-    text = update.message.text
-
-    # p, _ = Profile.objects.get_or_create(
-    #     external_id=chat_id,
-    #     defaults={
-    #         'name': update.message.from_user.username,
-    #     }
-    # )
-    # m = Message(
-    #     profile=p,
-    #     text=text,
-    # )
-    # m.save()
-
-    reply_text = f'*Ваш ID* = {chat_id}\n{text}'
-    update.message.reply_text(
-        text=reply_text,
-        parse_mode="Markdown"
-    )
-
-
 @log_errors
 def handle_welcome(update: Update, context: CallbackContext):
     welcome_text = "*Привет, я QteamBot 👋*\n" \
@@ -417,8 +390,6 @@ class Command(BaseCommand):
         #        card.pic_file_id = msg.photo[0].file_id
         #        card.save()
 
-        message_handler = MessageHandler(Filters.text, do_echo)
-        updater.dispatcher.add_handler(message_handler)
         updater.dispatcher.add_handler(CommandHandler('start', handle_welcome))
         updater.dispatcher.add_handler(CommandHandler('weekend', get_plans))
         updater.dispatcher.add_handler(CallbackQueryHandler(keyboard_callback_handler, pass_chat_data=True))
