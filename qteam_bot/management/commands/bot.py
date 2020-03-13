@@ -93,13 +93,16 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
 
 
     if real_data['type'] == 'show':
-        #params =get_card_message_telegram_req_params(card)
+        params =get_card_message_telegram_req_params(card)
         #update.message.edit_message_text(f, caption=welcome_text, parse_mode="Markdown")
         #query.edit_message_text(text=params['text'], parse_mode=params['parse_mode'], reply_markup=params['reply_markup'])
         #context.bot.send_message(chat_id=update.effective_chat.id, text=static"I'm a bot, please talk to me!")
         context.bot.edit_message_media(media=InputMediaPhoto(card.pic_file_id),
-                                         chat_id=update.callback_query.message.chat_id,
-                                         message_id=update.callback_query.message.message_id)
+                                       chat_id=update.callback_query.message.chat_id,
+                                       message_id=update.callback_query.message.message_id,
+                                       caption=params['text'],
+                                       parse_mode=params['parse_mode'],
+                                       reply_markup=params['reply_markup'] )
         #with open('qteam_bot/pics/10.png', 'rb') as f:
         #query.edit_message_caption('adsfds')
         #context.bot.edit_message_caption(caption='haha',
@@ -320,9 +323,6 @@ class Command(BaseCommand):
         #print('msg.photo.file_id',msg.photo[0].file_id)
 
 
-        file_id = 'AgACAgIAAxkDAAIBoV5rZFXQdcg9j-ZzIvplsZ16RS2xAAKDrDEb329YS40s4Gy0QVY-efTADgAEAQADAgADeAADFfIDAAEYBA'
-        bot.send_photo(733585869, file_id)
-
         # 2 -- обработчики
         updater = Updater(
             bot=bot,
@@ -330,14 +330,14 @@ class Command(BaseCommand):
         )
         cards_to_renew = get_possible_cards_on_weekend()
 
-        for card in cards_to_renew:
-            if not card.image:
-                continue
-            print('before_send', settings.BASE_DIR+card.image.url)
-            with open(settings.BASE_DIR+card.image.url, 'rb') as f:
-                msg = bot.send_photo(733585869,f)
-                card.pic_file_id = msg.photo[0].file_id
-                card.save()
+        #for card in cards_to_renew:
+        #    if not card.image:
+        #        continue
+        #    print('before_send', settings.BASE_DIR+card.image.url)
+        #    with open(settings.BASE_DIR+card.image.url, 'rb') as f:
+        #        msg = bot.send_photo(733585869,f)
+        #        card.pic_file_id = msg.photo[0].file_id
+        #        card.save()
 
         message_handler = MessageHandler(Filters.text, do_echo)
         updater.dispatcher.add_handler(message_handler)
