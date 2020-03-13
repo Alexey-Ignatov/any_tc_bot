@@ -270,7 +270,9 @@ def get_plan_card_activity_list_params(bot_user):
 
     keyboard = []
     res_cards = get_user_cards_today(bot_user)
+    print("get_plan_card_activity_list_params:res_cards", res_cards)
     keyboard += get_cards_btns(res_cards)
+    print('get_plan_card_activity_list_params:', keyboard)
     #keyboard.append([back_btn])
 
     # final_text += "\nВыберете развлечение для более подробного просмотра:"
