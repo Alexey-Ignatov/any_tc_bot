@@ -268,15 +268,15 @@ def get_plan_card_activity_list_params(bot_user):
     final_text = get_user_plans_str(bot_user)
     final_text += "\n\n Выбирите активность из списка для просмотра"
 
-    #back_btn = InlineKeyboardButton(text="⬅️ Назад",
-    #                                callback_data=json.dumps({'type': 'back_to_main'}))
+    back_btn = InlineKeyboardButton(text="⬅️ Назад",
+                                    callback_data=json.dumps({'type': 'back_to_main'}))
 
     keyboard = []
     res_cards = get_user_cards_today(bot_user)
     print("get_plan_card_activity_list_params:res_cards", res_cards)
     keyboard += get_cards_btns(res_cards)
     print('get_plan_card_activity_list_params:', keyboard)
-    #keyboard.append([back_btn])
+    keyboard.append([back_btn])
 
     # final_text += "\nВыберете развлечение для более подробного просмотра:"
 
