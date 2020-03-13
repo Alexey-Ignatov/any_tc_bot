@@ -375,7 +375,7 @@ class Command(BaseCommand):
                            "🎁А еще добаили новых интересных активностей. " \
                            "🎉Впереди выходные, наш бот как раз будет кстати!"
 
-            bot.send_photo('https://s7.hostingkartinok.com/uploads/images/2014/12/3ad269d96b8e1859c44f1f783a7b9936.jpg',
+            bot.send_photo(bot_user_id,'https://s7.hostingkartinok.com/uploads/images/2014/12/3ad269d96b8e1859c44f1f783a7b9936.jpg',
                            caption=welcome_text, parse_mode="Markdown")
 
             welcome_text = "*Привет, я QteamBot 👋*\n" \
@@ -386,7 +386,7 @@ class Command(BaseCommand):
                            "👍Обязательно лайкайте и дизлайкайте активности! На основе этого я строю рекомендации.\n" \
                            "👌После того как вы выбрали активность, вносите их в план, чтобы я был спокоен за ваши выходные и не напоминал вам их планировать!"
             f = open('qteam_bot/pics/man-2087782_1920.jpg', 'rb')
-            bot.send_photo(f,
+            bot.send_photo(bot_user_id,f,
                            caption=welcome_text, parse_mode="Markdown")
 
 
