@@ -60,7 +60,7 @@ def get_card_message_telegram_req_params(card,likes_btns=True):
         keyboard.append(book_btns)
 
     btn = InlineKeyboardButton(text="⬅️ Назад",
-                               callback_data=json.dumps({'type': 'show_planed_activities'}))
+                               callback_data=json.dumps({'type': 'show_new_activities'}))
     keyboard.append([btn])
 
     return {"text":text,
