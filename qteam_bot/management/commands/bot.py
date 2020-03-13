@@ -315,11 +315,31 @@ class Command(BaseCommand):
         )
         print(bot.get_me())
 
+        #with open('qteam_bot/pics/indus_plan.jpg', 'rb') as f:
+        #    msg = bot.send_photo(733585869,f)
+        #    msg.photo[0].file_id
+
+        #print('msg.photo.file_id',msg.photo[0].file_id)
+
+
+        file_id = 'AgACAgIAAxkDAAIBoV5rZFXQdcg9j-ZzIvplsZ16RS2xAAKDrDEb329YS40s4Gy0QVY-efTADgAEAQADAgADeAADFfIDAAEYBA'
+        bot.send_photo(733585869, file_id)
+
         # 2 -- обработчики
         updater = Updater(
             bot=bot,
             use_context=True,
         )
+        cards_to_renew = get_possible_cards_on_weekend()
+
+        for card in cards_to_renew:
+            if not card.image:
+                continue
+            print('before_send', settings.BASE_DIR+card.image.url)
+            with open(settings.BASE_DIR+card.image.url, 'rb') as f:
+                msg = bot.send_photo(733585869,f)
+                card.pic_file_id = msg.photo[0].file_id
+                card.save()
 
         message_handler = MessageHandler(Filters.text, do_echo)
         updater.dispatcher.add_handler(message_handler)
