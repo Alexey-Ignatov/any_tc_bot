@@ -9,7 +9,7 @@ from telegram.ext import Filters
 from telegram.ext import MessageHandler
 from telegram.ext import Updater
 from telegram.utils.request import Request
-from qteam_bot.models import BotUser,BookEveningEvent, CardLike, CardDislike, Card, DateUserCardSet
+from qteam_bot.models import BotUser,BookEveningEvent, CardLike, CardDislike, Card, DateUserCardSet,CardDate
 from qteam_bot.views import get_next_weekend_and_names, get_cards_ok_to_show_on_date
 import json
 from random import shuffle
@@ -203,9 +203,22 @@ def get_cards_by_user(bot_user):
     print('bot_user', bot_user)
     res_cards = get_possible_cards_on_weekend(individual_stop_list=liked_cards + disliked_cards)
 
-    shuffle(res_cards)
-    res_cards = res_cards[:5]
-    return res_cards
+
+    dates_list = get_next_weekend_and_names()
+    special_date_cards = []
+    for date_dict in dates_list:
+        good_carddates = CardDate.objects.filter(date=date_dict['date'])
+        special_date_cards +=[card_date.card for card_date in good_carddates]
+
+    special_date_cards = list(set(special_date_cards) & set(res_cards))
+    another_cards_list = list(set(res_cards) - set(special_date_cards))
+
+
+
+    shuffle(special_date_cards)
+    shuffle(another_cards_list)
+    
+    return special_date_cards[:3]+another_cards_list[:2]
 
 
 def get_cards_btns(cards):
@@ -342,7 +355,7 @@ def handle_welcome(update: Update, context: CallbackContext):
                    "🎯🗓 Чтобы провести выходные весело и полезно, их нужно обязательно спланировать заранее.\n" \
                    "💡Я напомню что нужно спланировать выходные и предложу варианты по вашим вкусам.\n\n" \
                    "🔥Введите /weekend проверить свои планы  на подобрать что-то новое.\n" \
-                   "😎Каждый день для вас будут подбираться новые активности.\n\n" \
+                   "😎Каждый день для вас будут подбираться новые активности. Но в течение дня они не менются.\n\n" \
                    "👍Обязательно лайкайте и дизлайкайте активности! На основе этого я строю рекомендации.\n" \
                    "👌После того как вы выбрали активность, вносите их в план, чтобы я был спокоен за ваши выходные и не напоминал вам их планировать!"
     f = open('qteam_bot/pics/man-2087782_1920.jpg', 'rb')
@@ -370,23 +383,13 @@ class Command(BaseCommand):
 
         bot_user_id_list= [int('733585869')]
         for bot_user_id in bot_user_id_list:
-            welcome_text = "*👋Привет! " \
-                           "🛠Мы доработали нашего бота, отталкиваясь то ваших пожелний!*\n" \
-                           "🎁А еще добаили новых интересных активностей. " \
-                           "🎉Впереди выходные, наш бот как раз будет кстати!"
+            welcome_text = "*👋Привет!* \n" \
+                           "🛠Мы доработали нашего бота, отталкиваясь то ваших пожелний!\n" \
+                           "🎁А еще добаили новых интересных активностей.\n" \
+                           "🎉Впереди выходные, наш бот как раз будет кстати!\n" \
+                           "🧨 Нажмите /start , чтобы посмотреть что изменилось!"
 
             bot.send_photo(bot_user_id,'https://s7.hostingkartinok.com/uploads/images/2014/12/3ad269d96b8e1859c44f1f783a7b9936.jpg',
-                           caption=welcome_text, parse_mode="Markdown")
-
-            welcome_text = "*Привет, я QteamBot 👋*\n" \
-                           "🎯🗓 Чтобы провести выходные весело и полезно, их нужно обязательно спланировать заранее.\n" \
-                           "💡Я напомню что нужно спланировать выходные и предложу варианты по вашим вкусам.\n\n" \
-                           "🔥Введите /weekend проверить свои планы  на подобрать что-то новое.\n" \
-                           "😎Каждый день для вас будут подбираться новые активности.\n\n" \
-                           "👍Обязательно лайкайте и дизлайкайте активности! На основе этого я строю рекомендации.\n" \
-                           "👌После того как вы выбрали активность, вносите их в план, чтобы я был спокоен за ваши выходные и не напоминал вам их планировать!"
-            f = open('qteam_bot/pics/man-2087782_1920.jpg', 'rb')
-            bot.send_photo(bot_user_id,f,
                            caption=welcome_text, parse_mode="Markdown")
 
 
