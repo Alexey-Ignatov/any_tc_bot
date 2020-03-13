@@ -109,9 +109,9 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
         context.bot.edit_message_media(media=InputMediaPhoto(card.pic_file_id),
                                        chat_id=update.callback_query.message.chat_id,
                                        message_id=update.callback_query.message.message_id)
-        #query.edit_message_caption(params['text'],
-        #                               reply_markup=params['reply_markup'],
-        #                               parse_mode=params['parse_mode'] )
+        query.edit_message_caption(params['text'],
+                                       reply_markup=params['reply_markup'],
+                                       parse_mode=params['parse_mode'] )
         #context.bot.edit_message_caption(caption='haha',
         #                         chat_id=update.callback_query.message.chat_id,
         #                         message_id=update.callback_query.message.message_id)
@@ -433,14 +433,14 @@ class Command(BaseCommand):
         )
         cards_to_renew = get_possible_cards_on_weekend()
 
-        #for card in cards_to_renew:
-        #    if not card.image:
-        #        continue
-        #    print('before_send', settings.BASE_DIR+card.image.url)
-        #    with open(settings.BASE_DIR+card.image.url, 'rb') as f:
-        #        msg = bot.send_photo(733585869,f)
-        #        card.pic_file_id = msg.photo[0].file_id
-        #        card.save()
+        for card in cards_to_renew:
+            if not card.image:
+                continue
+            print('before_send', settings.BASE_DIR+card.image.url)
+            with open(settings.BASE_DIR+card.image.url, 'rb') as f:
+                msg = bot.send_photo(733585869,f)
+                card.pic_file_id = msg.photo[0].file_id
+                card.save()
 
         updater.dispatcher.add_handler(CommandHandler('start', handle_welcome))
         updater.dispatcher.add_handler(CommandHandler('weekend', get_plans))
