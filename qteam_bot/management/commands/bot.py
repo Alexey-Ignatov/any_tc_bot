@@ -157,23 +157,17 @@ def get_cards_by_user(bot_user):
     res_cards = res_cards[:5]
     return res_cards
 
-def get_plan_card_params(bot_user):
-    print('get_plan_card_params')
-    try:
-        date_user_card_set = DateUserCardSet.objects.get(bot_user=bot_user, date=(
-                    datetime.datetime.now() + datetime.timedelta(hours=3)).date())
-        card_id_list = json.loads(date_user_card_set.card_ids)
-        res_cards = Card.objects.filter(pk__in=card_id_list).order_by('id')
-        print('get_plan_card_params:from try')
-    except DateUserCardSet.DoesNotExist:
-        res_cards = get_cards_by_user(bot_user)
-        res_cards.sort(key=lambda x: x.id, reverse=False)
 
-        res_cards_ids = [card.id for card in res_cards]
-        DateUserCardSet.objects.create(bot_user=bot_user, date=(datetime.datetime.now() + datetime.timedelta(hours=3)).date(), card_ids=json.dumps(res_cards_ids))
+def get_cards_btns(cards):
+    keyboard =[]
+    for card in cards:
+        btn = InlineKeyboardButton(text=card.title,
+                               callback_data=json.dumps({'card_id': card.id, 'type': 'show'}))
+        keyboard.append([btn])
+    return keyboard
 
-        print('get_plan_card_params:first time')
 
+def get_user_plans_str(bot_user):
     dates_list = get_next_weekend_and_names()
     emodzi_list = ["🍕", "️💥", "🔥", "🧠", "👻",
                    "👌", "🥋", "🎣", "⛳", "️🎱", "🏋",
@@ -183,7 +177,6 @@ def get_plan_card_params(bot_user):
     shuffle(emodzi_list)
 
     plans_by_date = []
-    keyboard = []
     final_text = ''.join(emodzi_list[:3]) + "*Ваши планы на ближайшие выходные:*\n\n"
     for date_dict in dates_list:
         day_plans_text_list = []
@@ -202,14 +195,35 @@ def get_plan_card_params(bot_user):
             curr_plan['plans_text'] if curr_plan['plans_text'] \
                 else "Ничего не запланировано") + '\n\n'
 
-
-    for card in res_cards:
-        btn = InlineKeyboardButton(text=card.title,
-                               callback_data=json.dumps({'card_id': card.id, 'type': 'show'}))
-        keyboard.append([btn])
+    return final_text
 
 
+def get_user_cards_today(bot_user):
+    try:
+        date_user_card_set = DateUserCardSet.objects.get(bot_user=bot_user, date=(
+                    datetime.datetime.now() + datetime.timedelta(hours=3)).date())
+        card_id_list = json.loads(date_user_card_set.card_ids)
+        res_cards = Card.objects.filter(pk__in=card_id_list).order_by('id')
+        print('get_plan_card_params:from try')
+    except DateUserCardSet.DoesNotExist:
+        res_cards = get_cards_by_user(bot_user)
+        res_cards.sort(key=lambda x: x.id, reverse=False)
 
+        res_cards_ids = [card.id for card in res_cards]
+        DateUserCardSet.objects.create(bot_user=bot_user, date=(datetime.datetime.now() + datetime.timedelta(hours=3)).date(), card_ids=json.dumps(res_cards_ids))
+
+        print('get_plan_card_params:first time')
+
+    return res_cards
+
+def get_plan_card_params(bot_user):
+    print('get_plan_card_params')
+    
+    keyboard = []
+    res_cards = get_user_cards_today(bot_user)
+    keyboard+=get_cards_btns(res_cards)
+
+    final_text = get_user_plans_str(bot_user)
     final_text += "\nВыберете развлечение для более подробного просмотра:"
 
     return {
@@ -217,6 +231,11 @@ def get_plan_card_params(bot_user):
             'parse_mode' : "Markdown",
             'reply_markup' : InlineKeyboardMarkup(keyboard)
     }
+
+
+
+
+
 
 
 def get_plans(update: Update, context: CallbackContext):
@@ -284,31 +303,6 @@ def handle_welcome(update: Update, context: CallbackContext):
     update.message.reply_photo(f, caption=welcome_text, parse_mode="Markdown")
 
 
-@log_errors
-def do_count(update: Update, context: CallbackContext):
-    chat_id = update.message.chat_id
-
-    # p, _ = Profile.objects.get_or_create(
-    #     external_id=chat_id,
-    #     defaults={
-    #         'name': update.message.from_user.username,
-    #     }
-    # )
-    # count = Message.objects.filter(profile=p).count()
-
-    count = 0
-    update.message.reply_text(
-        text=f'У вас {count} сообщений',
-    )
-
-@log_errors
-def start(update: Update, context: CallbackContext):
-    chat_id = update.message.chat_id
-
-    count = 0
-    update.message.reply_text(
-        text=f'У вас {count} сообщений',
-    )
 
 class Command(BaseCommand):
     help = 'Телеграм-бот'
@@ -351,7 +345,6 @@ class Command(BaseCommand):
 
         message_handler = MessageHandler(Filters.text, do_echo)
         updater.dispatcher.add_handler(message_handler)
-        updater.dispatcher.add_handler(CommandHandler('count', do_count))
         updater.dispatcher.add_handler(CommandHandler('start', handle_welcome))
         updater.dispatcher.add_handler(CommandHandler('plan', get_plans))
         updater.dispatcher.add_handler(CallbackQueryHandler(keyboard_callback_handler, pass_chat_data=True))
