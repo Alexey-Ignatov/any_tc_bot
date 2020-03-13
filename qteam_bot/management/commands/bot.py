@@ -368,7 +368,7 @@ class Command(BaseCommand):
         print(bot.get_me())
 
 
-        bot_user_id_list= ['733585869']
+        bot_user_id_list= [int('733585869')]
         for bot_user_id in bot_user_id_list:
             welcome_text = "*👋Привет! " \
                            "🛠Мы доработали нашего бота, отталкиваясь то ваших пожелний!*\n" \
