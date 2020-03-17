@@ -88,7 +88,8 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
         bot_user = BotUser.objects.create(bot_user_id=str(bot_user_id),
                                           first_name=update.message.from_user.first_name if update.message.from_user.first_name else "" ,
                                           last_name=update.message.from_user.last_name if update.message.from_user.last_name else "",
-                                          username=update.message.from_user.username if update.message.from_user.username else "")
+                                          username=update.message.from_user.username if update.message.from_user.username else "",
+                                          last_active=timezone.now())
     except BotUser.MultipleObjectsReturned:
         bot_user = BotUser.objects.filter(bot_user_id=str(bot_user_id))[0]
 
@@ -406,7 +407,8 @@ def get_plans(update: Update, context: CallbackContext):
         bot_user = BotUser.objects.create(bot_user_id=str(bot_user_id),
                                           first_name=update.message.from_user.first_name if update.message.from_user.first_name else "" ,
                                           last_name=update.message.from_user.last_name if update.message.from_user.last_name else "",
-                                          username=update.message.from_user.username if update.message.from_user.username else "")
+                                          username=update.message.from_user.username if update.message.from_user.username else "",
+                                          last_active=timezone.now())
     except BotUser.MultipleObjectsReturned:
         bot_user = BotUser.objects.filter(bot_user_id=str(bot_user_id))[0]
 
@@ -436,7 +438,8 @@ def handle_welcome(update: Update, context: CallbackContext):
         bot_user = BotUser.objects.create(bot_user_id=str(bot_user_id),
                                           first_name=update.message.from_user.first_name if update.message.from_user.first_name else "" ,
                                           last_name=update.message.from_user.last_name if update.message.from_user.last_name else "",
-                                          username=update.message.from_user.username if update.message.from_user.username else "")
+                                          username=update.message.from_user.username if update.message.from_user.username else "",
+                                          last_active=timezone.now())
     except BotUser.MultipleObjectsReturned:
         bot_user = BotUser.objects.filter(bot_user_id=str(bot_user_id))[0]
 
