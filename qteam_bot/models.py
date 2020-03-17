@@ -30,7 +30,8 @@ class Card(models.Model):
     date_ends = models.DateField()
 
     image = models.ImageField(null=True)
-    pic_file_id = models.CharField(max_length=300,default='')
+    pic_file_id = models.CharField(max_length=300,null=True, blank=True)
+
 
 
     def __str__(self):
