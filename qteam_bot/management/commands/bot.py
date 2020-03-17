@@ -445,14 +445,15 @@ def handle_welcome(update: Update, context: CallbackContext):
     StartEvent.objects.create(bot_user=bot_user)
 
     welcome_text = "*Привет, я QteamBot 👋*\n" \
-                   "🎯🗓 Чтобы провести выходные весело и полезно, их нужно обязательно спланировать заранее.\n" \
-                   "💡Я напомню что нужно спланировать выходные и предложу варианты по вашим вкусам.\n\n" \
-                   "🔥Введите /weekend проверить свои планы  на подобрать что-то новое.\n" \
-                   "😎Каждый день для вас будут подбираться новые активности. Но в течение дня они не менются.\n\n" \
+                   "😷Карантин - время насторожиться, но точно не время раскисать!\n" \
+                   "🎯🗓 Распланируйте выходные так, чтобы и вам не было скучно и врачи одобрили.\n\n" \
+                   "🔥Введите /weekend проверить свои планы и подобрать что-то новое.\n" \
+                   "😎Каждый день я буду подбирать лично для вас 5 новых активностей. \n" \
+                   "👌Сразу вносите в план те, что понравились, завтра их уже не будет.\n\n" \
                    "👍Обязательно лайкайте и дизлайкайте активности! На основе этого я строю рекомендации.\n" \
-                   "👌После того как вы выбрали активность, вносите их в план, чтобы я был спокоен за ваши выходные и не напоминал вам их планировать!"
-    f = open('qteam_bot/pics/man-2087782_1920.jpg', 'rb')
-    update.message.reply_photo(f, caption=welcome_text, parse_mode="Markdown")
+                   "🏎Ну, понеслась!"
+    #f = open('qteam_bot/pics/man-2087782_1920.jpg', 'rb')
+    update.message.reply_photo("https://www.sunhome.ru/i/wallpapers/32/hyu-lori-doktor-haus.1024x600.jpg", caption=welcome_text, parse_mode="Markdown")
 
 
 def send_broadcast(update: Update, context: CallbackContext):
@@ -470,10 +471,23 @@ def send_broadcast(update: Update, context: CallbackContext):
                            "🎉Впереди выходные, наш бот как раз будет кстати!\n" \
                            "🧨 Нажмите /start , чтобы посмотреть что изменилось!"
 
-            context.bot.send_photo(bot_user_id,'https://s7.hostingkartinok.com/uploads/images/2014/12/3ad269d96b8e1859c44f1f783a7b9936.jpg',
+            context.bot.send_photo(bot_user_id,'https://cdn.readovka.ru/n/149224/1200x630/8794de3ef1.jpg',
                            caption=welcome_text, parse_mode="Markdown")
         except (Unauthorized, BadRequest):
             pass
+
+
+def see_all(update: Update, context: CallbackContext):
+    bot_user_id = update.message.from_user.id
+    if str(bot_user_id) != '733585869':
+        return
+
+    cards_to_renew = Card.objects.filter(is_active=True)
+    for card in cards_to_renew:
+        params =get_card_message_telegram_req_params(card)
+        with open(settings.BASE_DIR + card.image.url, 'rb') as f:
+            msg = context.bot.send_photo(733585869, f, caption=params['text'], parse_mode=params['parse_mode'], reply_markup=params['reply_markup'])
+
 
 class Command(BaseCommand):
     help = 'Телеграм-бот'
@@ -511,6 +525,7 @@ class Command(BaseCommand):
         updater.dispatcher.add_handler(CommandHandler('start', handle_welcome))
         updater.dispatcher.add_handler(CommandHandler('weekend', get_plans))
         updater.dispatcher.add_handler(CommandHandler('send_broadcast', send_broadcast))
+        updater.dispatcher.add_handler(CommandHandler('see_all', see_all))
         updater.dispatcher.add_handler(CallbackQueryHandler(keyboard_callback_handler, pass_chat_data=True))
 
 
