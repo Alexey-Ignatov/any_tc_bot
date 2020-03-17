@@ -222,6 +222,25 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
                                        reply_markup=InlineKeyboardMarkup(keyboard),
                                        parse_mode="Markdown")
 
+
+    if real_data['type'] == 'delete_book':
+        try:
+            book = BookEveningEvent.objects.get(pk=real_data['book_id'])
+        except BookEveningEvent.DoesNotExist:
+            return
+
+        book.delete()
+        query.answer(show_alert=True, text="Активность удалена из плана!")
+        params = get_plan_card__main_params(bot_user)
+
+        context.bot.edit_message_media(media=InputMediaPhoto(settings.PLAN_PHOTO_TELEGRAM_FILE_ID),
+                                       chat_id=update.callback_query.message.chat_id,
+                                       message_id=update.callback_query.message.message_id)
+        query.edit_message_caption(params['text'],
+                                       reply_markup=params['reply_markup'],
+                                       parse_mode=params['parse_mode'] )
+
+
     #if real_data['type'] == 'delete_card':
 
 
@@ -347,7 +366,7 @@ def get_plan_card__main_params(bot_user):
                                callback_data=json.dumps({'type': 'show_new_activities_from_main'}))
     btn_show_planed_acts = InlineKeyboardButton(text="🧳Открыть запланированные",
                                callback_data=json.dumps({'type': 'show_planed_activities'}))
-    btn_delete_planed_acts = InlineKeyboardButton(text="🧳Удалить запланированные",
+    btn_delete_planed_acts = InlineKeyboardButton(text="🗑Удалить запланированные",
                                callback_data=json.dumps({'type': 'delete_planed_activities'}))
 
     keyboard +=[[btn_show_new_acts],[btn_show_planed_acts], [btn_delete_planed_acts]]
