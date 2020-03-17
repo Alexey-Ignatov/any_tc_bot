@@ -424,7 +424,7 @@ def get_plans(update: Update, context: CallbackContext):
 def handle_welcome(update: Update, context: CallbackContext):
     bot_user_id = update.message.from_user.id
 
-    bot_user = get_bot_user(bot_user_id)
+    bot_user = get_bot_user(update.message.from_user)
     bot_user.upd_last_active()
 
     StartEvent.objects.create(bot_user=bot_user)
