@@ -270,23 +270,17 @@ def get_cards_by_user(bot_user):
 
     liked_cards = [like.card for like in CardLike.objects.filter(bot_user=bot_user)]
     disliked_cards = [like.card for like in CardDislike.objects.filter(bot_user=bot_user)]
+    booked_cards = [book.card for book in BookEveningEvent.objects.filter(bot_user=bot_user)]
     print('bot_user', bot_user)
-    res_cards = get_possible_cards_on_weekend(individual_stop_list=liked_cards + disliked_cards)
+    res_cards = get_possible_cards_on_weekend(individual_stop_list=liked_cards + disliked_cards+ booked_cards)
 
+    #special_date_cards = list(set(special_date_cards) & set(res_cards))
+    #another_cards_list = list(set(res_cards) - set(special_date_cards))
 
-    dates_list = get_next_weekend_and_names()
-    special_date_cards = []
-    for date_dict in dates_list:
-        good_carddates = CardDate.objects.filter(date=date_dict['date'])
-        special_date_cards +=[card_date.card for card_date in good_carddates]
+    shuffle(res_cards)
+    #shuffle(another_cards_list)
 
-    special_date_cards = list(set(special_date_cards) & set(res_cards))
-    another_cards_list = list(set(res_cards) - set(special_date_cards))
-
-    shuffle(special_date_cards)
-    shuffle(another_cards_list)
-
-    return special_date_cards[:3]+another_cards_list[:2]
+    return res_cards[:5]
 
 
 def get_cards_btns(cards):
