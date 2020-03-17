@@ -11,7 +11,7 @@ from telegram.ext import Updater
 from telegram.utils.request import Request
 from qteam_bot.models import BotUser,BookEveningEvent, CardLike, CardDislike, Card, DateUserCardSet,CardDate
 from qteam_bot.models import OpenCardEvent, GetCardsEvent,GetPlansEvent,StartEvent
-from qteam_bot.views import get_next_weekend_and_names, get_cards_ok_to_show_on_date
+from qteam_bot.views import get_next_weekend_and_names, get_cards_ok_to_show_on_date,date_to_date_dict
 import json
 from random import shuffle
 from telegram.error import Unauthorized
@@ -58,7 +58,8 @@ def get_card_message_telegram_req_params(card,likes_btns=True):
         if card not in get_cards_ok_to_show_on_date(date=date_dict['date']):
             continue
         book_btns =[InlineKeyboardButton(text="✅ В план на {}".format(date_dict['date_text']),
-                                         callback_data=json.dumps({'card_id': card.id, 'date': str(date_dict['date']), 'type':'book'}))]
+                                         callback_data=json.dumps({'card_id': card.id, 'date': str(date_dict['date']), 'type':'book'})
+                                         )]
 
         keyboard.append(book_btns)
 
@@ -163,7 +164,7 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
                                        message_id=update.callback_query.message.message_id)
 
         print("params", params)
-        query.edit_message_caption(params['text'],
+        query.edit_message_caption("Выбирите активность из списка для просмотра",
                                     reply_markup=params['reply_markup'],
                                    parse_mode = params['parse_mode'] )
 
@@ -175,7 +176,7 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
                                        message_id=update.callback_query.message.message_id)
 
         print("params", params)
-        query.edit_message_caption(params['text'],
+        query.edit_message_caption("Выбирите активность из списка для просмотра",
                                     reply_markup=params['reply_markup'],
                                    parse_mode = params['parse_mode'] )
 
@@ -203,19 +204,47 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
                                        reply_markup=InlineKeyboardMarkup(keyboard),
                                        parse_mode="Markdown")
 
+    if real_data['type'] == 'delete_planed_activities':
+        context.bot.edit_message_media(media=InputMediaPhoto(settings.PLAN_PHOTO_TELEGRAM_FILE_ID),
+                                       chat_id=update.callback_query.message.chat_id,
+                                       message_id=update.callback_query.message.message_id)
+
+        res_books = get_user_weekend_planed_bookevents(bot_user)
+        keyboard  = get_delete_cards_btns(res_books)
+
+        back_btn = InlineKeyboardButton(text="⬅️ Назад",
+                                        callback_data=json.dumps({'type': 'back_to_main'}))
+        keyboard.append([back_btn])
+
+        final_text = get_user_plans_str(bot_user)
+
+        query.edit_message_caption(final_text+"\nВыбирите активность из списка для удаления",
+                                       reply_markup=InlineKeyboardMarkup(keyboard),
+                                       parse_mode="Markdown")
+
+    #if real_data['type'] == 'delete_card':
 
 
+
+def get_user_weekend_planed_bookevents(bot_user):
+    dates_list = get_next_weekend_and_names()
+    day_plans_event_list = []
+    for date_dict in dates_list:
+        day_book_events = BookEveningEvent.objects.filter(planed_date=date_dict['date'], bot_user=bot_user).order_by('planed_date')
+        for event in day_book_events:
+            day_plans_event_list.append(event)
+
+    return day_plans_event_list
 
 def get_user_weekend_planed_cards(bot_user):
     dates_list = get_next_weekend_and_names()
-    day_plans_text_list = []
+    day_plans_card_list = []
     for date_dict in dates_list:
-        day_book_events = BookEveningEvent.objects.filter(planed_date=date_dict['date'], bot_user=bot_user)
+        day_book_events = BookEveningEvent.objects.filter(planed_date=date_dict['date'], bot_user=bot_user).order_by('planed_date')
         for event in day_book_events:
-            day_plans_text_list.append(event.card)
+            day_plans_card_list.append(event.card)
 
-    return list(set(day_plans_text_list))
-
+    return list(set(day_plans_card_list))
 
 
 def get_cards_by_user(bot_user):
@@ -246,6 +275,14 @@ def get_cards_btns(cards):
     for card in cards:
         btn = InlineKeyboardButton(text=card.title,
                                callback_data=json.dumps({'card_id': card.id, 'type': 'show'}))
+        keyboard.append([btn])
+    return keyboard
+
+def get_delete_cards_btns(book_events):
+    keyboard =[]
+    for book in book_events:
+        btn = InlineKeyboardButton(text="❌"+date_to_date_dict(book.planed_date)['date_text']+" "+book.card.title+" ❌",
+                               callback_data=json.dumps({'book_id': book.id, 'type': 'delete_book'}))
         keyboard.append([btn])
     return keyboard
 
@@ -310,8 +347,10 @@ def get_plan_card__main_params(bot_user):
                                callback_data=json.dumps({'type': 'show_new_activities_from_main'}))
     btn_show_planed_acts = InlineKeyboardButton(text="🧳Открыть запланированные",
                                callback_data=json.dumps({'type': 'show_planed_activities'}))
+    btn_delete_planed_acts = InlineKeyboardButton(text="🧳Удалить запланированные",
+                               callback_data=json.dumps({'type': 'delete_planed_activities'}))
 
-    keyboard +=[[btn_show_new_acts],[btn_show_planed_acts]]
+    keyboard +=[[btn_show_new_acts],[btn_show_planed_acts], [btn_delete_planed_acts]]
 
     #final_text += "\nВыберете развлечение для более подробного просмотра:"
 
