@@ -91,6 +91,8 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
     except BotUser.MultipleObjectsReturned:
         bot_user = BotUser.objects.filter(bot_user_id=str(bot_user_id))[0]
 
+    bot_user.upd_last_active()
+
     try:
         if 'card_id' in real_data:
             card = Card.objects.get(pk=real_data['card_id'])
@@ -99,10 +101,8 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
 
 
     if real_data['type'] == 'show':
-        #OpenCardEvent.objects.create(bot_user=bot_user, card=card)
-        print('card', card)
+        OpenCardEvent.objects.create(bot_user=bot_user, card=card)
         params =get_card_message_telegram_req_params(card)
-        print('params', params)
         #update.message.edit_message_text(f, caption=welcome_text, parse_mode="Markdown")
         #query.edit_message_text(text=params['text'], parse_mode=params['parse_mode'], reply_markup=params['reply_markup'])
         #context.bot.send_message(chat_id=update.effective_chat.id, text=static"I'm a bot, please talk to me!")
@@ -235,8 +235,6 @@ def get_cards_by_user(bot_user):
     special_date_cards = list(set(special_date_cards) & set(res_cards))
     another_cards_list = list(set(res_cards) - set(special_date_cards))
 
-
-
     shuffle(special_date_cards)
     shuffle(another_cards_list)
 
@@ -360,6 +358,8 @@ def get_plans(update: Update, context: CallbackContext):
     except BotUser.MultipleObjectsReturned:
         bot_user = BotUser.objects.filter(bot_user_id=str(bot_user_id))[0]
 
+    bot_user.upd_last_active()
+
     GetPlansEvent.objects.create(bot_user=bot_user)
     plan_req_data = get_plan_card__main_params(bot_user)
 
@@ -388,6 +388,8 @@ def handle_welcome(update: Update, context: CallbackContext):
     except BotUser.MultipleObjectsReturned:
         bot_user = BotUser.objects.filter(bot_user_id=str(bot_user_id))[0]
 
+    bot_user.upd_last_active()
+
     StartEvent.objects.create(bot_user=bot_user)
 
     welcome_text = "*Привет, я QteamBot 👋*\n" \
@@ -398,10 +400,28 @@ def handle_welcome(update: Update, context: CallbackContext):
                    "👍Обязательно лайкайте и дизлайкайте активности! На основе этого я строю рекомендации.\n" \
                    "👌После того как вы выбрали активность, вносите их в план, чтобы я был спокоен за ваши выходные и не напоминал вам их планировать!"
     f = open('qteam_bot/pics/man-2087782_1920.jpg', 'rb')
-
     update.message.reply_photo(f, caption=welcome_text, parse_mode="Markdown")
 
 
+def send_broadcast(update: Update, context: CallbackContext):
+     bot_user_id = update.message.from_user.id
+     if str(bot_user_id) != '733585869':
+         return
+
+     bot_user_id_list= [int(bot_user.bot_user_id) for bot_user in BotUser.objects.all() ]
+
+     for bot_user_id in bot_user_id_list:
+        try:
+            welcome_text = "*👋Привет!* \n" \
+                           "🛠Мы доработали нашего бота, отталкиваясь то ваших пожелний!\n" \
+                           "🎁А еще добаили новых интересных активностей.\n" \
+                           "🎉Впереди выходные, наш бот как раз будет кстати!\n" \
+                           "🧨 Нажмите /start , чтобы посмотреть что изменилось!"
+
+            context.bot.send_photo(bot_user_id,'https://s7.hostingkartinok.com/uploads/images/2014/12/3ad269d96b8e1859c44f1f783a7b9936.jpg',
+                           caption=welcome_text, parse_mode="Markdown")
+        except (Unauthorized, BadRequest):
+            pass
 
 class Command(BaseCommand):
     help = 'Телеграм-бот'
@@ -420,19 +440,7 @@ class Command(BaseCommand):
         print(bot.get_me())
 
 
-
-
-
-        #print('msg.photo.file_id',msg.photo[0].file_id)
-
-
-        # 2 -- обработчики
-        updater = Updater(
-            bot=bot,
-            use_context=True,
-        )
-        cards_to_renew = get_possible_cards_on_weekend()
-
+        cards_to_renew = Card.objects.filter(is_active=True)
         for card in cards_to_renew:
             if not card.image:
                 continue
@@ -442,8 +450,15 @@ class Command(BaseCommand):
                 card.pic_file_id = msg.photo[0].file_id
                 card.save()
 
+
+        updater = Updater(
+            bot=bot,
+            use_context=True,
+        )
+
         updater.dispatcher.add_handler(CommandHandler('start', handle_welcome))
         updater.dispatcher.add_handler(CommandHandler('weekend', get_plans))
+        updater.dispatcher.add_handler(CommandHandler('send_broadcast', send_broadcast))
         updater.dispatcher.add_handler(CallbackQueryHandler(keyboard_callback_handler, pass_chat_data=True))
 
 

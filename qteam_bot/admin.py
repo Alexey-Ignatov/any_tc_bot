@@ -63,7 +63,8 @@ class CardDislikeAdmin(admin.ModelAdmin):
 
 @admin.register(BotUser)
 class BotUserAdmin(admin.ModelAdmin):
-    list_display = ('bot_user_id', 'first_name', 'last_name', 'username')
+    list_display = ('bot_user_id', 'first_name', 'last_name', 'username', 'last_active')
+    ordering = ['last_active']
 
 
 @admin.register(BotUserToCardCategory)

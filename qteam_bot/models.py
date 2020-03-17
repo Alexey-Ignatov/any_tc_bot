@@ -51,6 +51,12 @@ class BotUser(models.Model):
     last_name = models.CharField(max_length=100)
     username = models.CharField(max_length=100)
 
+    last_active = models.DateTimeField()
+    def upd_last_active(self):
+        self.last_active = timezone.now()
+        self.save()
+
+
     def __str__(self):
         return str(self.id) + ' '+  str(self.bot_user_id)
 
