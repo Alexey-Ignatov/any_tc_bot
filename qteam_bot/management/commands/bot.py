@@ -415,8 +415,8 @@ def get_plans(update: Update, context: CallbackContext):
     GetPlansEvent.objects.create(bot_user=bot_user)
     plan_req_data = get_plan_card__main_params(bot_user)
 
-    with open('qteam_bot/pics/indus_plan.jpg', 'rb') as f :
-        msg = update.message.reply_photo(f, caption=plan_req_data['text'],
+
+    msg = update.message.reply_photo("https://cdn.readovka.ru/n/149224/1200x630/8794de3ef1.jpg", caption=plan_req_data['text'],
                                    parse_mode=plan_req_data['parse_mode'],
                                    reply_markup=plan_req_data['reply_markup'])
 
