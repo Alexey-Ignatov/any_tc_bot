@@ -62,7 +62,7 @@ def get_cards_ok_to_show_on_date(date,individual_stop_list=[]):
                                             date_ends__gte=date,
                                             is_special_dates=False)
 
-    good_carddates = CardDate.objects.filter(date=date)
+    good_carddates = CardDate.objects.filter(date=date, card__is_active=True)
     special_date_cards_set = set([card_date.card for card_date in good_carddates])
     res_set = (special_date_cards_set | set(good_period_cards)) - set(individual_stop_list)
 
