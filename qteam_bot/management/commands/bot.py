@@ -308,11 +308,14 @@ def send_dayly_broadcast(update: Update, context: CallbackContext):
 
         print('card_show_list', card_show_list)
         if cards_list:
-            title_card = cards_list[0]
-            params = get_card_message_telegram_req_params(title_card, card_show_list.id, bot_user)
-            msg = context.bot.send_photo(bot_user.bot_user_id,title_card.pic_file_id, caption=params['text'],
-                                              parse_mode=params['parse_mode'],
-                                              reply_markup=params['reply_markup'])
+            try:
+                title_card = cards_list[0]
+                params = get_card_message_telegram_req_params(title_card, card_show_list.id, bot_user)
+                msg = context.bot.send_photo(bot_user.bot_user_id,title_card.pic_file_id, caption=params['text'],
+                                                  parse_mode=params['parse_mode'],
+                                                  reply_markup=params['reply_markup'])
+            except (Unauthorized, BadRequest):
+                pass
 
 
 def send_newsletter_broadcast(update: Update, context: CallbackContext):
