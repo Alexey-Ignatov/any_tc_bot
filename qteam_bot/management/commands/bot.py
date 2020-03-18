@@ -69,12 +69,16 @@ def get_card_message_telegram_req_params(card,card_list_id):
     except CardShowList.DoesNotExist:
         card_id_list = []
         card_btn_flags_list = []
-
+    print('card_btn_flags_list', card_btn_flags_list)
     nav_btns_line = []
     if card.id in card_id_list:
         card_index = card_id_list.index(card.id)
+
         btn_flags = card_btn_flags_list[card_index]
+        print('btn_flags', btn_flags)
         likes_btns = []
+
+
         if btn_flags['like']:
             likes_btns.append(InlineKeyboardButton(text="👍",
                                                    callback_data=json.dumps({'card_id': card.id, 'type': 'like'})))
