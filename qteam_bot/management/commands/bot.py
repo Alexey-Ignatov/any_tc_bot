@@ -283,13 +283,11 @@ def handle_welcome(update: Update, context: CallbackContext):
     StartEvent.objects.create(bot_user=bot_user)
 
     welcome_text = "*Привет, я QteamBot 👋*\n" \
-                   "😷Карантин - время насторожиться, но точно не время раскисать!\n" \
-                   "🎯🗓 Распланируйте выходные так, чтобы и вам не было скучно и врачи одобрили.\n\n" \
-                   "🔥Введите /weekend проверить свои планы и подобрать что-то новое.\n" \
-                   "😎Каждый день я буду подбирать лично для вас 5 новых активностей. \n" \
-                   "👌Сразу вносите в план те, что понравились, завтра их уже не будет.\n\n" \
-                   "👍Обязательно лайкайте и дизлайкайте активности! На основе этого я строю рекомендации.\n" \
-                   "🤙И, конечно, не забывайте делиться идеями с друзьями!\n\n" \
+                   "😷Карантин - время насторожиться, но точно не время раскисать!\n\n" \
+                   "😎Каждый день я буду подбирать лично для вас и присылать 5 интересных и полезных активностей, которые не противоречат крантину.\n" \ 
+                   "👍Обязательно лайкайте активности, чтобы пересмотреть их снова. А еще на основе этого я строю рекомендации.\n" \
+                   "🤙Введите /likes чтобы посмотреть что вы лайкали.\n" \
+                   "P.S. По команде /get можно посмотреть активности на сегодня, если вы их упустили\n\n" \
                    "🏎Ну, понеслась!"
     update.message.reply_photo("https://www.sunhome.ru/i/wallpapers/32/hyu-lori-doktor-haus.1024x600.jpg", caption=welcome_text, parse_mode="Markdown")
 
@@ -316,7 +314,25 @@ def send_dayly_broadcast(update: Update, context: CallbackContext):
                                               parse_mode=params['parse_mode'],
                                               reply_markup=params['reply_markup'])
 
-    
+
+def send_newsletter_broadcast(update: Update, context: CallbackContext):
+    bot_user_id = update.message.from_user.id
+    if str(bot_user_id) != '733585869':
+        return
+
+    bot_user_list=  [bot_user for bot_user in BotUser.objects.all()]
+    bot_user_list = [get_bot_user(update.message.from_user)]
+
+    for bot_user in bot_user_list:
+        try:
+            welcome_text = "*👋Привет!*\n" \
+                           "🛠Мы доработали нашего бота, отталкиваясь то ваших пожелний, теперь в нем нет ничего лишнего!\n" \
+                           "🧨 Нажмите /start , чтобы посмотреть что изменилось!"
+
+            context.bot.send_photo(bot_user.bot_user_id, 'https://miro.medium.com/max/1100/0*iOQP_kfBnBJDB9GQ.png',
+                                   caption=welcome_text, parse_mode="Markdown")
+        except (Unauthorized, BadRequest):
+            pass
 
 
 def see_all(update: Update, context: CallbackContext):
@@ -368,6 +384,7 @@ class Command(BaseCommand):
         updater.dispatcher.add_handler(CommandHandler('get', handle_get))
         updater.dispatcher.add_handler(CommandHandler('likes', handle_likes))
         updater.dispatcher.add_handler(CommandHandler('send_dayly_broadcast', send_dayly_broadcast))
+        updater.dispatcher.add_handler(CommandHandler('send_newsletter_broadcast', send_newsletter_broadcast))
         updater.dispatcher.add_handler(CommandHandler('see_all', see_all))
         updater.dispatcher.add_handler(CallbackQueryHandler(keyboard_callback_handler, pass_chat_data=True))
 
