@@ -62,8 +62,8 @@ def get_card_message_telegram_req_params(card,card_id_list):
     text ="*{}* \n{}".format(card.title, card.card_text)
 
     keyboard = []
-    likes_btns =[InlineKeyboardButton(text="👍", callback_data=json.dumps({'card_id': card.id, 'type': 'like'})),
-                 InlineKeyboardButton(text="👎", callback_data=json.dumps({'card_id': card.id, 'type': 'dislike'}))]
+    likes_btns =[InlineKeyboardButton(text="👍", callback_data=json.dumps({'id': card.id, 't': 'like'})),
+                 InlineKeyboardButton(text="👎", callback_data=json.dumps({'id': card.id, 't': 'dislike'}))]
 
     keyboard.append(likes_btns)
     nav_btns_line = []
@@ -71,15 +71,15 @@ def get_card_message_telegram_req_params(card,card_id_list):
         card_index = card_id_list.index(card.id)
         if card_index != 0:
             btn_prev = InlineKeyboardButton(text="⬅️ Назад",
-                                   callback_data=json.dumps({'card_id': card_id_list[card_index-1], 'type': 'show', 'list':card_id_list}))
-            print('data_len ', len(json.dumps({'card_id': card_id_list[card_index-1], 'type': 'show', 'list':card_id_list})))
+                                   callback_data=json.dumps({'id': card_id_list[card_index-1], 't': 's', 'l':card_id_list}))
+            print('data_len ', len(json.dumps({'id': card_id_list[card_index-1], 't': 's', 'l':card_id_list})))
             nav_btns_line.append(btn_prev)
         if card_index != len(card_id_list)-1:
             btn_next = InlineKeyboardButton(text="➡️️ Вперед",
-                                   callback_data=json.dumps({'card_id': card_id_list[card_index+1], 'type': 'show', 'list':card_id_list}))
-            
+                                   callback_data=json.dumps({'id': card_id_list[card_index+1], 't': 's', 'l':card_id_list}))
+
             print('data_len ',
-                  len(json.dumps({'card_id': card_id_list[card_index - 1], 'type': 'show', 'list': card_id_list})))
+                  len(json.dumps({'id': card_id_list[card_index+1], 't': 's', 'l':card_id_list})))
             nav_btns_line.append(btn_next)
 
     keyboard.append(nav_btns_line)
@@ -99,17 +99,18 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
     bot_user = get_bot_user(update.effective_user)
     bot_user.upd_last_active()
 
-    try:
-        if 'card_id' in real_data:
-            card = Card.objects.get(pk=real_data['card_id'])
-    except Card.DoesNotExist:
-        return
 
 
-    if real_data['type'] == 'show':
+
+    if real_data['t'] == 's':
+        try:
+            if 'id' in real_data:
+                card = Card.objects.get(pk=real_data['id'])
+        except Card.DoesNotExist:
+            return
         OpenCardEvent.objects.create(bot_user=bot_user, card=card)
 
-        params = get_card_message_telegram_req_params(card, real_data['card_list'])
+        params = get_card_message_telegram_req_params(card, real_data['l'])
 
         context.bot.edit_message_media(media=InputMediaPhoto(card.pic_file_id),
                                        chat_id=update.callback_query.message.chat_id,
@@ -119,11 +120,23 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
                                        parse_mode=params['parse_mode'] )
 
 
-    if real_data['type'] == 'like':
+    if real_data['t'] == 'like':
+        try:
+            if 'id' in real_data:
+                card = Card.objects.get(pk=real_data['id'])
+        except Card.DoesNotExist:
+            return
+
         CardLike.objects.create(bot_user=bot_user, date=timezone.now() + datetime.timedelta(hours=3), card=card)
         query.answer(show_alert=False, text="Предпочтения учтены!")
 
-    if real_data['type'] == 'dislike':
+    if real_data['t'] == 'dislike':
+        try:
+            if 'id' in real_data:
+                card = Card.objects.get(pk=real_data['id'])
+        except Card.DoesNotExist:
+            return
+
         CardDislike.objects.create(bot_user=bot_user, date=timezone.now() + datetime.timedelta(hours=3), card=card)
         query.answer(show_alert=False, text="Предпочтения учтены!")
 
