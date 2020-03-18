@@ -62,19 +62,30 @@ def get_card_message_telegram_req_params(card,card_list_id):
     text ="*{}* \n{}".format(card.title, card.card_text)
 
     keyboard = []
-    likes_btns =[InlineKeyboardButton(text="👍", callback_data=json.dumps({'card_id': card.id, 'type': 'like'})),
-                 InlineKeyboardButton(text="👎", callback_data=json.dumps({'card_id': card.id, 'type': 'dislike'}))]
-
-    keyboard.append(likes_btns)
 
     try:
         card_id_list = json.loads(CardShowList.objects.get(pk = card_list_id).card_list_json)
+        card_btn_flags_list = json.loads(CardShowList.objects.get(pk=card_list_id).card_list_btns_flags_json)
     except CardShowList.DoesNotExist:
         card_id_list = []
+        card_btn_flags_list = []
 
     nav_btns_line = []
     if card.id in card_id_list:
         card_index = card_id_list.index(card.id)
+        btn_flags = card_btn_flags_list[card_index]
+        likes_btns = []
+        if btn_flags['like']:
+            likes_btns.append(InlineKeyboardButton(text="👍",
+                                                   callback_data=json.dumps({'card_id': card.id, 'type': 'like'})))
+        if btn_flags['dislike']:
+            likes_btns.append(InlineKeyboardButton(text="👎",
+                                 callback_data=json.dumps({'card_id': card.id, 'type': 'dislike'})))
+
+        keyboard.append(likes_btns)
+
+
+
         if card_index != 0:
             btn_prev = InlineKeyboardButton(text="⬅️ Назад",
                                    callback_data=json.dumps({'card_id': card_id_list[card_index-1], 'type': 'show', 'list_id':card_list_id}))
@@ -180,7 +191,16 @@ def handle_get(update: Update, context: CallbackContext):
     bot_user = get_bot_user(update.message.from_user)
     bot_user.upd_last_active()
     cards_list = get_user_cards_today(bot_user)
-    card_show_list = CardShowList.objects.create(card_list_json=json.dumps([card.id for card in cards_list]))
+
+    btns_flags_list = []
+    for card in cards_list:
+        btns_flags_list.append({
+            'like':True,
+            'dislike':True
+        })
+
+    card_show_list = CardShowList.objects.create(card_list_json=json.dumps([card.id for card in cards_list]),
+                                                 card_list_btns_flags_json=json.dumps(btns_flags_list))
 
     if cards_list:
         title_card =cards_list[0]
@@ -189,6 +209,27 @@ def handle_get(update: Update, context: CallbackContext):
         msg = update.message.reply_photo(title_card.pic_file_id, caption=params['text'], parse_mode=params['parse_mode'],
                                  reply_markup=params['reply_markup'])
 
+
+def handle_likes(update: Update, context: CallbackContext):
+    bot_user = get_bot_user(update.message.from_user)
+    bot_user.upd_last_active()
+
+    cards_list = CardLike.objects.filter(bot_user=bot_user).order_by('?')
+    btns_flags_list = []
+    for card in cards_list:
+        btns_flags_list.append({
+            'like':False,
+            'dislike':True
+        })
+
+    card_show_list = CardShowList.objects.create(card_list_json=json.dumps([card.id for card in cards_list]),
+                                                 card_list_btns_flags_json=json.dumps(btns_flags_list))
+    if cards_list:
+        title_card =cards_list[0]
+        params = get_card_message_telegram_req_params(title_card,card_show_list.id)
+
+        msg = update.message.reply_photo(title_card.pic_file_id, caption=params['text'], parse_mode=params['parse_mode'],
+                                 reply_markup=params['reply_markup'])
 
 @log_errors
 def handle_welcome(update: Update, context: CallbackContext):
@@ -279,6 +320,7 @@ class Command(BaseCommand):
 
         updater.dispatcher.add_handler(CommandHandler('start', handle_welcome))
         updater.dispatcher.add_handler(CommandHandler('get', handle_get))
+        updater.dispatcher.add_handler(CommandHandler('likes', handle_likes))
         updater.dispatcher.add_handler(CommandHandler('send_broadcast', send_broadcast))
         updater.dispatcher.add_handler(CommandHandler('see_all', see_all))
         updater.dispatcher.add_handler(CallbackQueryHandler(keyboard_callback_handler, pass_chat_data=True))
