@@ -133,3 +133,7 @@ class StartEvent(models.Model):
     date_added = models.DateTimeField(auto_now_add=True)
     def __str__(self):
         return str(self.bot_user.bot_user_id) + ' ' + str(self.date_added)
+
+
+class CardShowList(models.Model):
+    card_list_json = models.CharField(max_length=800)
