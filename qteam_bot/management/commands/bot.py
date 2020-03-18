@@ -79,8 +79,8 @@ def get_card_message_telegram_req_params(card,card_list_id, bot_user):
 
         likes_btns = []
 
-        likes = CardLike.objects.filter(bot_user=bot_user, card=card)
-        dislikes = CardDislike.objects.filter(bot_user=bot_user, card=card)
+        likes = list(CardLike.objects.filter(bot_user=bot_user, card=card))
+        dislikes = list(CardDislike.objects.filter(bot_user=bot_user, card=card))
 
         if likes or not likes+dislikes:
             likes_btns.append(InlineKeyboardButton(text="👍",
