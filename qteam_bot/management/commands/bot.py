@@ -77,6 +77,9 @@ def get_card_message_telegram_req_params(card,card_id_list):
         if card_index != len(card_id_list)-1:
             btn_next = InlineKeyboardButton(text="➡️️ Вперед",
                                    callback_data=json.dumps({'card_id': card_id_list[card_index+1], 'type': 'show', 'list':card_id_list}))
+            
+            print('data_len ',
+                  len(json.dumps({'card_id': card_id_list[card_index - 1], 'type': 'show', 'list': card_id_list})))
             nav_btns_line.append(btn_next)
 
     keyboard.append(nav_btns_line)
