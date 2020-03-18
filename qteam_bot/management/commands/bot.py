@@ -224,7 +224,8 @@ def handle_likes(update: Update, context: CallbackContext):
     bot_user = get_bot_user(update.message.from_user)
     bot_user.upd_last_active()
 
-    cards_list = CardLike.objects.filter(bot_user=bot_user).order_by('?')
+    cards_like_list = CardLike.objects.filter(bot_user=bot_user).order_by('?')
+    cards_list = [like.card for like in cards_like_list]
     btns_flags_list = []
     for card in cards_list:
         btns_flags_list.append({
