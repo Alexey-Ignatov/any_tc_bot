@@ -82,12 +82,20 @@ def get_card_message_telegram_req_params(card,card_list_id, bot_user):
         likes = list(CardLike.objects.filter(bot_user=bot_user, card=card))
         dislikes = list(CardDislike.objects.filter(bot_user=bot_user, card=card))
 
-        if likes or not likes+dislikes:
+        if likes:
             likes_btns.append(InlineKeyboardButton(text="👍",
-                                                   callback_data=json.dumps({'card_id': card.id, 'type': 'like', 'list_id':card_list_id})))
-        if dislikes or not likes+dislikes:
+                                                   callback_data=json.dumps({'card_id': card.id, 'type': 'dislike', 'list_id':card_list_id})))
+        if dislikes:
             likes_btns.append(InlineKeyboardButton(text="👎",
-                                 callback_data=json.dumps({'card_id': card.id, 'type': 'dislike', 'list_id':card_list_id})))
+                                 callback_data=json.dumps({'card_id': card.id, 'type': 'like', 'list_id':card_list_id})))
+
+        if not likes+dislikes:
+            likes_btns.append(InlineKeyboardButton(text="👍",
+                                                   callback_data=json.dumps({'card_id': card.id, 'type': 'like',
+                                                                             'list_id': card_list_id})))
+            likes_btns.append(InlineKeyboardButton(text="👎",
+                                                   callback_data=json.dumps(
+                                                       {'card_id': card.id, 'type': 'dislike', 'list_id': card_list_id})))
 
         keyboard.append(likes_btns)
 
