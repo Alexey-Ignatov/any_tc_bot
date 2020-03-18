@@ -102,11 +102,11 @@ def get_card_message_telegram_req_params(card,card_list_id, bot_user):
 
 
         if card_index != 0:
-            btn_prev = InlineKeyboardButton(text="⬅️ Назад",
+            btn_prev = InlineKeyboardButton(text="⬅️ Предыдущее",
                                    callback_data=json.dumps({'card_id': card_id_list[card_index-1], 'type': 'show', 'list_id':card_list_id}))
             nav_btns_line.append(btn_prev)
         if card_index != len(card_id_list)-1:
-            btn_next = InlineKeyboardButton(text="➡️️ Вперед",
+            btn_next = InlineKeyboardButton(text="➡️️ Следующее",
                                    callback_data=json.dumps({'card_id': card_id_list[card_index+1], 'type': 'show', 'list_id':card_list_id}))
             nav_btns_line.append(btn_next)
 
@@ -299,7 +299,7 @@ def send_dayly_broadcast(update: Update, context: CallbackContext):
 
     bot_user_list= [bot_user for bot_user in BotUser.objects.all()]
 
-    bot_user_list = [get_bot_user(update.message.from_user)]
+    #bot_user_list = [get_bot_user(update.message.from_user)]
 
     for bot_user in bot_user_list:
         cards_list = get_user_cards_today(bot_user)
@@ -321,7 +321,7 @@ def send_newsletter_broadcast(update: Update, context: CallbackContext):
         return
 
     bot_user_list=  [bot_user for bot_user in BotUser.objects.all()]
-    bot_user_list = [get_bot_user(update.message.from_user)]
+    #bot_user_list = [get_bot_user(update.message.from_user)]
 
     for bot_user in bot_user_list:
         try:
