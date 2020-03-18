@@ -137,4 +137,3 @@ class StartEvent(models.Model):
 
 class CardShowList(models.Model):
     card_list_json = models.CharField(max_length=800)
-    card_list_btns_flags_json = models.CharField(max_length=2000)

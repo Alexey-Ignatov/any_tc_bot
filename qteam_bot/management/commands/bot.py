@@ -58,7 +58,7 @@ def get_bot_user(from_user):
     return bot_user
 
 
-def get_card_message_telegram_req_params(card,card_list_id):
+def get_card_message_telegram_req_params(card,card_list_id, bot_user):
     text ="*{}* \n{}".format(card.title, card.card_text)
 
     keyboard = []
@@ -68,29 +68,26 @@ def get_card_message_telegram_req_params(card,card_list_id):
     try:
         print('try start')
         card_id_list = json.loads(CardShowList.objects.get(pk = card_list_id).card_list_json)
-        print('try mid')
-        card_btn_flags_list = json.loads(CardShowList.objects.get(pk=card_list_id).card_list_btns_flags_json)
         print('try end')
     except CardShowList.DoesNotExist:
         print('except')
         card_id_list = []
-        card_btn_flags_list = []
-    print('card_btn_flags_list', card_btn_flags_list)
+
     nav_btns_line = []
     if card.id in card_id_list:
         card_index = card_id_list.index(card.id)
 
-        btn_flags = card_btn_flags_list[card_index]
-        print('btn_flags', btn_flags)
         likes_btns = []
 
+        likes = CardLike.objects.filter(bot_user=bot_user, card=card)
+        dislikes = CardDislike.objects.filter(bot_user=bot_user, card=card)
 
-        if btn_flags['like']:
+        if likes or not likes+dislikes:
             likes_btns.append(InlineKeyboardButton(text="👍",
-                                                   callback_data=json.dumps({'card_id': card.id, 'type': 'like'})))
-        if btn_flags['dislike']:
+                                                   callback_data=json.dumps({'card_id': card.id, 'type': 'like', 'list_id':card_list_id})))
+        if dislikes or not likes+dislikes:
             likes_btns.append(InlineKeyboardButton(text="👎",
-                                 callback_data=json.dumps({'card_id': card.id, 'type': 'dislike'})))
+                                 callback_data=json.dumps({'card_id': card.id, 'type': 'dislike', 'list_id':card_list_id})))
 
         keyboard.append(likes_btns)
 
@@ -132,7 +129,7 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
     if real_data['type'] == 'show':
         OpenCardEvent.objects.create(bot_user=bot_user, card=card)
 
-        params = get_card_message_telegram_req_params(card, real_data['list_id'])
+        params = get_card_message_telegram_req_params(card, real_data['list_id'], bot_user)
 
         context.bot.edit_message_media(media=InputMediaPhoto(card.pic_file_id),
                                        chat_id=update.callback_query.message.chat_id,
@@ -143,12 +140,50 @@ def keyboard_callback_handler(update: Update, context: CallbackContext):
 
 
     if real_data['type'] == 'like':
-        CardLike.objects.create(bot_user=bot_user, date=timezone.now() + datetime.timedelta(hours=3), card=card)
+        try:
+            CardLike.objects.get(bot_user=bot_user, card=card)
+        except CardLike.DoesNotExist:
+            CardLike.objects.create(bot_user=bot_user, date=timezone.now() + datetime.timedelta(hours=3), card=card)
+
+        dislikes = CardDislike.objects.filter(bot_user=bot_user, card=card)
+        for dislike in dislikes:
+            dislike.delete()
+
         query.answer(show_alert=False, text="Предпочтения учтены!")
 
+        OpenCardEvent.objects.create(bot_user=bot_user, card=card)
+
+        params = get_card_message_telegram_req_params(card, real_data['list_id'], bot_user)
+
+        context.bot.edit_message_media(media=InputMediaPhoto(card.pic_file_id),
+                                       chat_id=update.callback_query.message.chat_id,
+                                       message_id=update.callback_query.message.message_id)
+        query.edit_message_caption(params['text'],
+                                       reply_markup=params['reply_markup'],
+                                       parse_mode=params['parse_mode'] )
+
     if real_data['type'] == 'dislike':
-        CardDislike.objects.create(bot_user=bot_user, date=timezone.now() + datetime.timedelta(hours=3), card=card)
+        try:
+            CardDislike.objects.get(bot_user=bot_user, card=card)
+        except CardDislike.DoesNotExist:
+            CardDislike.objects.create(bot_user=bot_user, date=timezone.now() + datetime.timedelta(hours=3), card=card)
+
+        likes = CardLike.objects.filter(bot_user=bot_user, card=card)
+        for like in likes:
+            like.delete()
+
         query.answer(show_alert=False, text="Предпочтения учтены!")
+
+        OpenCardEvent.objects.create(bot_user=bot_user, card=card)
+
+        params = get_card_message_telegram_req_params(card, real_data['list_id'], bot_user)
+
+        context.bot.edit_message_media(media=InputMediaPhoto(card.pic_file_id),
+                                       chat_id=update.callback_query.message.chat_id,
+                                       message_id=update.callback_query.message.message_id)
+        query.edit_message_caption(params['text'],
+                                       reply_markup=params['reply_markup'],
+                                       parse_mode=params['parse_mode'] )
 
 
 
@@ -202,20 +237,12 @@ def handle_get(update: Update, context: CallbackContext):
     bot_user.upd_last_active()
     cards_list = get_user_cards_today(bot_user)
 
-    btns_flags_list = []
-    for card in cards_list:
-        btns_flags_list.append({
-            'like':True,
-            'dislike':True
-        })
-
-    card_show_list = CardShowList.objects.create(card_list_json=json.dumps([card.id for card in cards_list]),
-                                                 card_list_btns_flags_json=json.dumps(btns_flags_list))
+    card_show_list = CardShowList.objects.create(card_list_json=json.dumps([card.id for card in cards_list]))
 
     print('card_show_list', card_show_list)
     if cards_list:
         title_card =cards_list[0]
-        params = get_card_message_telegram_req_params(title_card,card_show_list.id)
+        params = get_card_message_telegram_req_params(title_card,card_show_list.id, bot_user)
         msg = update.message.reply_photo(title_card.pic_file_id, caption=params['text'], parse_mode=params['parse_mode'],
                                  reply_markup=params['reply_markup'])
 
@@ -226,20 +253,13 @@ def handle_likes(update: Update, context: CallbackContext):
 
     cards_like_list = CardLike.objects.filter(bot_user=bot_user).order_by('?')
     cards_list = [like.card for like in cards_like_list]
-    btns_flags_list = []
-    for card in cards_list:
-        btns_flags_list.append({
-            'like':False,
-            'dislike':True
-        })
 
-    card_show_list = CardShowList.objects.create(card_list_json=json.dumps([card.id for card in cards_list]),
-                                                 card_list_btns_flags_json=json.dumps(btns_flags_list))
+    card_show_list = CardShowList.objects.create(card_list_json=json.dumps([card.id for card in cards_list]))
     print('card_show_list', card_show_list)
     if cards_list:
         title_card =cards_list[0]
         print('title_card', title_card)
-        params = get_card_message_telegram_req_params(title_card,card_show_list.id)
+        params = get_card_message_telegram_req_params(title_card,card_show_list.id, bot_user)
         print('params', params)
 
         msg = update.message.reply_photo(title_card.pic_file_id, caption=params['text'], parse_mode=params['parse_mode'],
