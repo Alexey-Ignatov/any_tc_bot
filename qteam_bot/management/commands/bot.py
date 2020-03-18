@@ -58,7 +58,7 @@ def get_bot_user(from_user):
     return bot_user
 
 
-def get_card_message_telegram_req_params(card,card_list):
+def get_card_message_telegram_req_params(card,card_id_list):
     text ="*{}* \n{}".format(card.title, card.card_text)
 
     keyboard = []
@@ -67,15 +67,15 @@ def get_card_message_telegram_req_params(card,card_list):
 
     keyboard.append(likes_btns)
     nav_btns_line = []
-    if card.id in card_list:
-        card_index = card_list.index(card.id)
+    if card.id in card_id_list:
+        card_index = card_id_list.index(card.id)
         if card_index != 0:
             btn_prev = InlineKeyboardButton(text="⬅️ Назад",
-                                   callback_data=json.dumps({'card_id': card_list[card_index-1], 'type': 'show', 'card_list':card_list}))
+                                   callback_data=json.dumps({'card_id': card_id_list[card_index-1], 'type': 'show', 'card_list':card_id_list}))
             nav_btns_line.append(btn_prev)
-        if card_index != len(card_list)-1:
+        if card_index != len(card_id_list)-1:
             btn_next = InlineKeyboardButton(text="➡️️ Вперед",
-                                   callback_data=json.dumps({'card_id': card_list[card_index+1], 'type': 'show', 'card_list':card_list}))
+                                   callback_data=json.dumps({'card_id': card_id_list[card_index+1], 'type': 'show', 'card_list':card_id_list}))
             nav_btns_line.append(btn_next)
 
     keyboard.append(nav_btns_line)
@@ -177,8 +177,8 @@ def handle_get(update: Update, context: CallbackContext):
 
 
     if cards_list:
-        title_card =Card.objects.get(pk=cards_list[0])
-        params = get_card_message_telegram_req_params(title_card, cards_list)
+        title_card =cards_list[0]
+        params = get_card_message_telegram_req_params(title_card,[card.id for card in cards_list])
 
         msg = update.message.reply_photo(title_card.pic_file_id, caption=params['text'], parse_mode=params['parse_mode'],
                                  reply_markup=params['reply_markup'])
@@ -255,15 +255,15 @@ class Command(BaseCommand):
         print(bot.get_me())
 
 
-        cards_to_renew = Card.objects.filter(is_active=True)
-        for card in cards_to_renew:
-            if not card.image:
-                continue
-            print('before_send', settings.BASE_DIR+card.image.url)
-            with open(settings.BASE_DIR+card.image.url, 'rb') as f:
-                msg = bot.send_photo(733585869,f)
-                card.pic_file_id = msg.photo[0].file_id
-                card.save()
+        #cards_to_renew = Card.objects.filter(is_active=True)
+        #for card in cards_to_renew:
+        #    if not card.image:
+        #        continue
+        #    print('before_send', settings.BASE_DIR+card.image.url)
+        #    with open(settings.BASE_DIR+card.image.url, 'rb') as f:
+        #        msg = bot.send_photo(733585869,f)
+        #        card.pic_file_id = msg.photo[0].file_id
+        #        card.save()
 
 
         updater = Updater(
