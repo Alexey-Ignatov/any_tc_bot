@@ -202,10 +202,10 @@ def handle_get(update: Update, context: CallbackContext):
     card_show_list = CardShowList.objects.create(card_list_json=json.dumps([card.id for card in cards_list]),
                                                  card_list_btns_flags_json=json.dumps(btns_flags_list))
 
+    print('card_show_list', card_show_list)
     if cards_list:
         title_card =cards_list[0]
         params = get_card_message_telegram_req_params(title_card,card_show_list.id)
-
         msg = update.message.reply_photo(title_card.pic_file_id, caption=params['text'], parse_mode=params['parse_mode'],
                                  reply_markup=params['reply_markup'])
 
@@ -224,6 +224,7 @@ def handle_likes(update: Update, context: CallbackContext):
 
     card_show_list = CardShowList.objects.create(card_list_json=json.dumps([card.id for card in cards_list]),
                                                  card_list_btns_flags_json=json.dumps(btns_flags_list))
+    print('card_show_list', card_show_list)
     if cards_list:
         title_card =cards_list[0]
         params = get_card_message_telegram_req_params(title_card,card_show_list.id)
