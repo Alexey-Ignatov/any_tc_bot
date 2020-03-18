@@ -227,6 +227,7 @@ def handle_likes(update: Update, context: CallbackContext):
     print('card_show_list', card_show_list)
     if cards_list:
         title_card =cards_list[0]
+        print('title_card', title_card)
         params = get_card_message_telegram_req_params(title_card,card_show_list.id)
 
         msg = update.message.reply_photo(title_card.pic_file_id, caption=params['text'], parse_mode=params['parse_mode'],
