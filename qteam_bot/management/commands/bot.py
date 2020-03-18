@@ -63,10 +63,16 @@ def get_card_message_telegram_req_params(card,card_list_id):
 
     keyboard = []
 
+    print('in get_card_message_telegram_req_params')
+
     try:
+        print('try start')
         card_id_list = json.loads(CardShowList.objects.get(pk = card_list_id).card_list_json)
+        print('try mid')
         card_btn_flags_list = json.loads(CardShowList.objects.get(pk=card_list_id).card_list_btns_flags_json)
+        print('try end')
     except CardShowList.DoesNotExist:
+        print('except')
         card_id_list = []
         card_btn_flags_list = []
     print('card_btn_flags_list', card_btn_flags_list)
