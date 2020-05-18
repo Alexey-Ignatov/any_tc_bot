@@ -82,9 +82,9 @@ WSGI_APPLICATION = 'qteam_telegram_bot.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'qteam_bot_server',
-        'USER': 'qteam_bot_user',
-        'PASSWORD': 'qteam_bot_user_password',
+        'NAME': 'any_tc_bot_server',
+        'USER': 'any_tc_bot_user',
+        'PASSWORD': 'any_tc_bot_user_password',
         'HOST': 'localhost',
         'PORT': '',
     }
@@ -140,4 +140,5 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 STATIC_ROOT = '/home/www/static/'
 
 TOKEN = '940424101:AAF0POeVyVIxvD517l1gOoAn-1PhgpJ7lU4'
+DEV_TG_ID = 646380871
 #PROXY_URL = 'https://telegg.ru/orig/bot'
