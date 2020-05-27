@@ -9,7 +9,7 @@ from telegram.ext import Filters
 from telegram.ext import MessageHandler
 from telegram.ext import Updater
 from telegram.utils.request import Request
-
+import requests
 from telegram import (InputMediaVideo, InputMediaPhoto, InputMediaAnimation, Message, InputFile,
                       InputMediaAudio, InputMediaDocument, PhotoSize)
 
@@ -515,7 +515,8 @@ class Command(BaseCommand):
             #return 'Возможно, вы имели в виду:\n' + '\n'.join(map(lambda x: x.title, stores))
             return -1, stores
 
-        intent_type = self.model([msg.lower()])[0]
+        r = requests.get('http://127.0.0.1:8000/model/?format=json', data={'context': msg})
+        intent_type =r.json()['intent_type']
         #intent_type = 'juveliry'
 
 
@@ -525,7 +526,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.help = 'Телеграм-бот'
         # 1 -- правильное подключение
-        self.load_model('acur_intent_config.json')
+        #self.load_model('acur_intent_config.json')
+
         self.org_hier_dialog = json.load(open('org_hier_dialog.json', 'r'))
         self.intent_to_node = json.load(open('intent_to_node.json', 'r'))
 

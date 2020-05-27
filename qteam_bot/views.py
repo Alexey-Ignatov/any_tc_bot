@@ -24,3 +24,12 @@ import json
 import requests
 from random import shuffle
 import time
+from qteam_bot.apps import intent_model
+
+
+
+class IntentModelApi(APIView):
+
+    @staticmethod
+    def get(request):
+        return Response({"intent_type": intent_model([str(request.data['context']).lower()])[0]})

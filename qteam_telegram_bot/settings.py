@@ -27,13 +27,14 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     '45.11.24.157',
+    '127.0.0.1',
     'localhost']
 
 
 # Application definition
 
 INSTALLED_APPS = [
-    'qteam_bot',
+    'qteam_bot.apps.QteamBotConfig',
 
     'rest_framework',
     'django.contrib.admin',
