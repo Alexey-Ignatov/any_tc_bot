@@ -2,7 +2,7 @@ from django.contrib import admin
 
 # Register your models here.
 from django.contrib import admin
-from .models import BotUser, Store,StoreCategory,StartEvent
+from .models import BotUser, Store,StoreCategory,StartEvent, MessageLog
 
 import json
 
@@ -27,6 +27,11 @@ class BotUserAdmin(admin.ModelAdmin):
 @admin.register(StartEvent)
 class StartEventAdmin(admin.ModelAdmin):
     pass
+
+@admin.register(MessageLog)
+class MessageLogAdmin(admin.ModelAdmin):
+    pass
+
 """
 
 @admin.register(CardCategory)
