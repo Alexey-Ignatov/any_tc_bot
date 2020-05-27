@@ -108,9 +108,6 @@ smart-open==2.0.0
 sqlparse==0.3.1
 starlette==0.12.9
 telegram==0.0.1
-tensorboard==1.15.0
-tensorflow==1.15.2
-tensorflow-estimator==1.15.1
 termcolor==1.1.0
 terminado==0.8.3
 testpath==0.4.4
