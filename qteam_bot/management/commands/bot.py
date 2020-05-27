@@ -388,7 +388,7 @@ class Command(BaseCommand):
         tmp_config['chainer']['out'] = ['y_pred_labels', 'y_pred_probas']
         tmp_config['chainer']['pipe'][-2]['out'] = ['y_pred_ids', 'y_pred_probas']
         self.model = build_model(tmp_config)
-        self.in_2_label = pickle.load(open('in_2_label.pkl', 'rb'))
+        #self.in_2_label = pickle.load(open('in_2_label.pkl', 'rb'))
         print('модель загрузили кое-как')
 
     def handle_spisok(self, update: Update, context: CallbackContext):
@@ -484,14 +484,14 @@ class Command(BaseCommand):
                                   reply_markup=params['reply_markup'],
                                   parse_mode=params['parse_mode'])
 
-    def predict(self, name, top=100000):
-        res_l, probs = self.model([name])
-        print('res_l, probs',res_l, probs)
-        res_dict = {}
-        for k, v in self.in_2_label.items():
-            res_dict[k] = probs[0][v]
+    #def predict(self, name, top=100000):
+    #    res_l, probs = self.model([name])
+    #    print('res_l, probs',res_l, probs)
+    #    res_dict = {}
+    #    for k, v in self.in_2_label.items():
+    #        res_dict[k] = probs[0][v]
 
-        return pd.Series(res_dict).sort_values()[-top:]
+    #    return pd.Series(res_dict).sort_values()[-top:]
 
     def org_name_find(self, query):
         res_dict = {}
@@ -506,13 +506,7 @@ class Command(BaseCommand):
         return sorted(filtered_res, key=filtered_res.get, reverse=True)
 
     def prebot(self, msg):
-        #intent_type = self.predict(msg.lower()).index[-1]
 
-        #print('intent_type:', intent_type)
-        #if intent_type=='wc':
-        #    return 'Туалет на втором этаже', []
-        #if intent_type=='cinema':
-        #    return 'Кинотеатр на третьем этаже', []
 
         name_result_list = self.org_name_find(msg)
 
