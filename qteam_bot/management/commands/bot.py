@@ -121,6 +121,7 @@ class Command(BaseCommand):
         update.message.reply_photo(self.bot_config['welcome_photo_url'],
                                    caption=self.bot_config['welcome_text'][:MAX_CAPTION_SIZE], parse_mode="Markdown")
 
+    @log_errors
     def load_mags(self, update: Update, context: CallbackContext):
         import time
 
