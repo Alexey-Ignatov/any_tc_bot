@@ -36,6 +36,8 @@ class Store(models.Model):
     is_active = models.BooleanField(default=True)
 
     title = models.CharField(max_length=200)
+
+    alter_names = models.CharField(max_length=1000, default='')
     short_descr = models.CharField(max_length=1000)
     long_descr = models.CharField(max_length=2000)
 

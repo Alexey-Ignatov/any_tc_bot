@@ -9,7 +9,52 @@ from telegram.ext import Filters
 from telegram.ext import MessageHandler
 from telegram.ext import Updater
 from telegram.utils.request import Request
+from collections import defaultdict
 import requests
+from nltk import regexp_tokenize
+
+
+def norm_name(name):
+    name_regex = '[a-zA-Zа-яА-Я]+|\d+'
+    return regexp_tokenize((name).lower(), name_regex)
+
+
+def get_n_grams(name, ngram_len):
+    a = norm_name(str(name).lower())
+    if len(a) <= ngram_len:
+        return [' '.join(a)]
+
+    res_list = []
+    for i in range(len(a) - ngram_len + 1):
+        res_list.append(' '.join(a[i:i + ngram_len]))
+    return res_list
+
+
+def find_comp_in_msg(msg, company_name):
+    comp_toks_num = len(norm_name(company_name))
+    company_name = ' '.join(norm_name(company_name))
+
+    tokens_list = get_n_grams(msg, comp_toks_num)
+    scores_list = []
+    for sub_name in tokens_list:
+        scores_list.append(fuzz.ratio(sub_name, company_name))
+    return max(scores_list)
+
+
+def get_best_keyword_match(msg, kw_to_id, th):
+    score_dict = {}
+    for cmp_name, brand_ind in kw_to_id.items():
+        score_dict[cmp_name] = find_comp_in_msg(msg, cmp_name)
+    my_dict = pd.Series(score_dict).sort_values().iloc[-1:].to_dict()
+
+    res_list = []
+    for name in sorted(score_dict, key=score_dict.get, reverse=True):
+        if score_dict[name] < th:
+            continue
+        res_list += kw_to_id[name]
+    return res_list
+
+
 from telegram import (InputMediaVideo, InputMediaPhoto, InputMediaAnimation, Message, InputFile,
                       InputMediaAudio, InputMediaDocument, PhotoSize)
 
@@ -39,7 +84,7 @@ def log_errors(f):
         try:
             return f(*args, **kwargs)
         except Exception as e:
-            error_message = f'Произошла ошибка: {e}'
+            error_message = 'Произошла плохая ошибка: {}'.format(e)
             print(error_message)
             raise e
 
@@ -96,6 +141,7 @@ class Command(BaseCommand):
                     title=row['long_name'],
                     brand=row['short_name'],
                     keywords=row['keywords'],
+                    alter_names=row['atler_names'],
                     short_descr=row['short_descr'],
                     long_descr=row['long_descr'],
                     floor=int(row['floor']),
@@ -276,6 +322,7 @@ class Command(BaseCommand):
         #self.in_2_label = pickle.load(open('in_2_label.pkl', 'rb'))
         print('модель загрузили кое-как')
 
+    @log_errors
     def handle_spisok(self, update: Update, context: CallbackContext):
 
         print('handle spisok')
@@ -295,6 +342,7 @@ class Command(BaseCommand):
                                         reply_markup=params['reply_markup'],
                                         parse_mode=params['parse_mode'])
 
+    @log_errors
     def handle_opened(self, update: Update, context: CallbackContext):
 
         print('handle spisok')
@@ -315,7 +363,7 @@ class Command(BaseCommand):
                                       reply_markup=params['reply_markup'],
                                       parse_mode=params['parse_mode'])
 
-
+    @log_errors
     def get_card_message_telegram_req_params(self, org, bot_user):
         text = org.get_card_text()
 
@@ -340,6 +388,7 @@ class Command(BaseCommand):
                 "parse_mode": "Markdown",
                 "reply_markup": InlineKeyboardMarkup(keyboard)}
 
+    @log_errors
     def msg_handler(self, update: Update, context: CallbackContext):
         bot_user = self.get_bot_user(update.message.from_user)
         bot_user.upd_last_active()
@@ -377,21 +426,46 @@ class Command(BaseCommand):
     #        res_dict[k] = probs[0][v]
 
     #    return pd.Series(res_dict).sort_values()[-top:]
+    @log_errors
+    def org_find_name_keywords(self, query):
+        #res_dict = {}
+        #for store in Store.objects.filter(bot = self.acur_bot):
+        #    mag_short_name = store.brand.lower()
 
-    def org_name_find(self, query):
-        res_dict = {}
+#            mag_short_name_trnaslit = cyrtranslit.to_cyrillic(mag_short_name.lower(), 'ru')
+ #           score = max(fuzz.partial_ratio(mag_short_name, query), fuzz.partial_ratio(mag_short_name_trnaslit, query))
+  #          res_dict[store.id] = score
+#
+ #       filtered_res = {k: v for k, v in res_dict.items() if v >= 80}
+  #      return sorted(filtered_res, key=filtered_res.get, reverse=True)
+
+        kw_to_ind = defaultdict(list)
         for store in Store.objects.filter(bot = self.acur_bot):
-            mag_short_name = store.brand.lower()
+            if str(store.keywords) in ['nan', '']:
+                continue
+            for kw in store.keywords.split(','):
+                kw_to_ind[kw.strip().lower()] += [store.id]
 
-            mag_short_name_trnaslit = cyrtranslit.to_cyrillic(mag_short_name.lower(), 'ru')
-            score = max(fuzz.partial_ratio(mag_short_name, query), fuzz.partial_ratio(mag_short_name_trnaslit, query))
-            res_dict[store.id] = score
+        brand_name_to_id = defaultdict(list)
+        for store in Store.objects.filter(bot = self.acur_bot):
+            mag_short_name = store.brand.strip().lower()
+            brand_name_to_id[mag_short_name] += [store.id]
 
-        filtered_res = {k: v for k, v in res_dict.items() if v >= 80}
-        return sorted(filtered_res, key=filtered_res.get, reverse=True)
+            brand_name_to_id[cyrtranslit.to_cyrillic(mag_short_name, 'ru')] += [store.id]
 
+            if str(store.alter_names) in ['nan', '']:
+                continue
+            for kw in store.alter_names.split(','):
+                brand_name_to_id[kw.strip().lower()] += [store.id]
+
+        print(brand_name_to_id)
+        print(kw_to_ind)
+        return get_best_keyword_match(query, brand_name_to_id, 80)+get_best_keyword_match(query, kw_to_ind, 75)
+
+    @log_errors
     def prebot(self, msg):
-        name_result_list = self.org_name_find(msg)
+        print('in prebot')
+        name_result_list = self.org_find_name_keywords(msg)
 
         if name_result_list:
             stores = Store.objects.filter(pk__in=name_result_list)
@@ -401,7 +475,6 @@ class Command(BaseCommand):
         r = requests.get(self.bot_config['model_api_url'], data={'context': msg})
         intent_type =r.json()['intent_type']
         print('intent_type', intent_type)
-        print('self.intent_to_node', self.intent_to_node)
         print('self.intent_to_node[intent_type]', self.intent_to_node[intent_type])
         #intent_type = 'juveliry'
 
@@ -421,7 +494,6 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         self.help = 'Телеграм-бот'
         config_path = kwargs['config_path']
-        print('config_path', config_path)
 
         self.bot_config = json.load(open(config_path))
         print('bot_config readed')
@@ -430,7 +502,6 @@ class Command(BaseCommand):
 
         self.org_hier_dialog = self.bot_config['org_hier_dialog']
         self.intent_to_node = self.bot_config['intent_to_node']
-
         self.TOKEN = self.bot_config['token']
 
         request = Request(
