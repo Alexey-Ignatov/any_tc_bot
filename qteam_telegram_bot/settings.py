@@ -140,6 +140,6 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 STATIC_ROOT = '/home/www/static/'
 
-TOKEN = '1233905933:AAG-AZJraKsxq_AXuAxVvMwOfmF8Q12TV0I'
+TOKEN = ''
 DEV_TG_ID = 646380871
 #PROXY_URL = 'https://telegg.ru/orig/bot'

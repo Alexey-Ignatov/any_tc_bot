@@ -21,7 +21,7 @@ class StoreCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(BotUser)
 class BotUserAdmin(admin.ModelAdmin):
-    list_display = ('id','bot_user_id', 'first_name', 'last_name', 'username', 'last_active')
+    list_display = ('id','bot_user_id', 'first_name', 'last_name', 'username', 'last_active', 'bot')
     ordering = ['-last_active']
 
 @admin.register(StartEvent)
@@ -30,7 +30,10 @@ class StartEventAdmin(admin.ModelAdmin):
 
 @admin.register(MessageLog)
 class MessageLogAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('id','bot_user', 'view_bot', 'text')
+
+    def view_bot(self, obj):
+        return obj.bot_user.bot
 
 """
 

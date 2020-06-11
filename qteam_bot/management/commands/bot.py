@@ -17,7 +17,7 @@ import telebot
 from telebot import types
 import json
 
-from qteam_bot.models import BotUser,Store, StoreCategory,StartEvent,CardShowList, MessageLog, OrgSubscription
+from qteam_bot.models import BotUser,Store, StoreCategory,StartEvent,CardShowList, MessageLog, OrgSubscription, AcurBot
 from random import shuffle
 from telegram.error import Unauthorized
 from telegram.error import BadRequest
@@ -32,7 +32,7 @@ from deeppavlov import train_model, configs, build_model
 
 from fuzzywuzzy import fuzz
 import cyrtranslit
-
+MAX_CAPTION_SIZE = 1000
 
 def log_errors(f):
     def inner(*args, **kwargs):
@@ -48,194 +48,79 @@ def log_errors(f):
 
 
 
-def load_mags(update: Update, context: CallbackContext):
-    import time
-
-    print('before_pickle')
-    df = pd.read_pickle('metropolis_to_load.pickle')
-    print('after pickle')
-    for ind, row in df.iterrows():
-        print(ind)
-        try:
-            store_cat = StoreCategory.objects.get(title=row['intent'])
-        except StoreCategory.DoesNotExist:
-            store_cat = StoreCategory.objects.create(title=row['intent'])
-
-        is_avail_for_subscr = not row['intent'] in ['wc', 'bankomat']
-        print('after store_cat')
-        try:
-            store = Store.objects.get(id=ind)
-            store.title = row['long_name']
-            store.brand = row['short_name']
-            store.keywords = row['keywords']
-            store.short_descr= row['short_descr']
-            store.long_descr= row['long_descr']
-            store.floor= int(row['floor'])
-            store.phone_number = ''
-            store.plan_image= row['map']
-            store.store_image =row['store']
-            store.cat = store_cat
-            store.is_availible_for_subscription = is_avail_for_subscr
-            store.save()
-        except Store.DoesNotExist:
-            store = Store.objects.create(
-                    id = ind,
-                    title = row['long_name'],
-                    brand = row['short_name'],
-                    keywords = row['keywords'],
-                    short_descr= row['short_descr'],
-                    long_descr= row['long_descr'],
-                    floor= int(row['floor']),
-                    phone_number = '',
-                    plan_image= row['map'],
-                    store_image =row['store'],
-                    is_availible_for_subscription=is_avail_for_subscr,
-                    cat = store_cat)
-
-
-        print('store',store )
-        store.get_plan_pic_file_id(context.bot)
-        store.get_store_pic_file_id(context.bot)
-
-        #context.bot.send_media_group(chat_id=update.effective_chat.id, media=[inp_photo, inp_photo2])
-        #time.sleep(2)
-
-
-
-
-
-
-
-
-
-def get_bot_user(from_user):
-    try:
-        bot_user = BotUser.objects.get(bot_user_id=str(from_user.id))
-    except BotUser.DoesNotExist:
-        bot_user = BotUser.objects.create(bot_user_id=str(from_user.id),
-                                          first_name=from_user.first_name if from_user.first_name else "",
-                                          last_name=from_user.last_name if from_user.last_name else "",
-                                          username=from_user.username if from_user.username else "",
-                                          last_active=timezone.now())
-    except BotUser.MultipleObjectsReturned:
-        bot_user = BotUser.objects.filter(bot_user_id=str(from_user.id))[0]
-
-    return bot_user
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def get_card_message_telegram_req_params(org,card_show_list_id, bot_user):
-    text ="*{}* \n{}".format(org.title, 'Описание для ' + org.title)
-
-    keyboard = []
-
-    print('in get_card_message_telegram_req_params')
-
-    try:
-        print('try start')
-        org_id_list = json.loads(CardShowList.objects.get(pk = card_show_list_id).card_list_json)
-        print('try end')
-    except CardShowList.DoesNotExist:
-        print('except')
-        org_id_list = []
-
-    nav_btns_line = []
-    if org.id in org_id_list:
-        org_index = org_id_list.index(org.id)
-        if org_index != 0:
-            btn_prev = InlineKeyboardButton(text="⬅️ Предыдущее",
-                                   callback_data=json.dumps({'org_id': org_id_list[org_index-1], 'type': 'show', 'list_id':card_show_list_id}))
-            nav_btns_line.append(btn_prev)
-        if org_index != len(org_id_list)-1:
-            btn_next = InlineKeyboardButton(text="➡️️ Следующее",
-                                   callback_data=json.dumps({'org_id': org_id_list[org_index+1], 'type': 'show', 'list_id':card_show_list_id}))
-            nav_btns_line.append(btn_next)
-
-    keyboard.append(nav_btns_line)
-
-    return {"text":text,
-            "parse_mode": "Markdown",
-            "reply_markup": InlineKeyboardMarkup(keyboard)}
-
-
-
-
-
-
-
-
-
-
-
-#def msg_handler(update: Update, context: CallbackContext):
-#    bot_user = get_bot_user(update.message.from_user)
-#    bot_user.upd_last_active()
-
-    #cards_like_list = CardLike.objects.filter(bot_user=bot_user).order_by('?')
-#    cards_list = [like.card for like in cards_like_list]
-
-#    store_show_list = CardShowList.objects.create(card_list_json=json.dumps([card.id for card in cards_list]))
-#    print('card_show_list', store_show_list)
-#    if cards_list:
-#        title_card =cards_list[0]
-#        print('title_card', title_card)
-#        params = get_card_message_telegram_req_params(title_card,store_show_list.id, bot_user)
-#        print('params', params)
-
-#        msg = update.message.reply_photo(title_card.pic_file_id, caption=params['text'], parse_mode=params['parse_mode'],
-#                                 reply_markup=params['reply_markup'])
-
-
-
-
-@log_errors
-def handle_welcome(update: Update, context: CallbackContext):
-    bot_user_id = update.message.from_user.id
-
-    bot_user = get_bot_user(update.message.from_user)
-    bot_user.upd_last_active()
-
-    StartEvent.objects.create(bot_user=bot_user)
-
-    welcome_text = "👋Добро пожаловать в тц Метрополис! \n" \
-                   "🤖Я информационный бот для помощи посетителям.\n" \
-                   "🔎Пишите мне что хотите найти - и я отвечу где искать.\n\n" \
-                   "👌Например: 'хочу купить ботинки' или 'где найти подарки' или 'у вас тут есть кинотеатр?'\n\n" \
-                   "/spisok - посмотреть общий список организаций и услуг\n" \
-                   "/opened - посмотреть список организаций, которые сегодня открыты\n\n" \
-                   "😍Подписывайтесь на любимые магазины, и мы уведомим вас об их открытии!\n\n" \
-                   "🏎Ну, понеслась!"
-    update.message.reply_photo("https://www.malls.ru/upload/medialibrary/a89/metropolis.jpg",
-                               caption=welcome_text, parse_mode="Markdown")
-
 
 
 class Command(BaseCommand):
+    def get_bot_user(self, from_user):
+        try:
+            bot_user = BotUser.objects.get(bot_user_id=str(from_user.id), bot=self.acur_bot)
+        except BotUser.DoesNotExist:
+            bot_user = BotUser.objects.create(bot_user_id=str(from_user.id),
+                                              first_name=from_user.first_name if from_user.first_name else "",
+                                              last_name=from_user.last_name if from_user.last_name else "",
+                                              username=from_user.username if from_user.username else "",
+                                              bot=self.acur_bot,
+                                              last_active=timezone.now())
+        except BotUser.MultipleObjectsReturned:
+            bot_user = BotUser.objects.filter(bot_user_id=str(from_user.id), bot=self.acur_bot)[0]
+
+        return bot_user
+
+    def handle_welcome(self, update: Update, context: CallbackContext):
+
+        bot_user = self.get_bot_user(update.message.from_user)
+        bot_user.upd_last_active()
+
+        StartEvent.objects.create(bot_user=bot_user)
+
+        update.message.reply_photo(self.bot_config['welcome_photo_url'],
+                                   caption=self.bot_config['welcome_text'][:MAX_CAPTION_SIZE], parse_mode="Markdown")
+
+    def load_mags(self, update: Update, context: CallbackContext):
+        import time
+
+        print('before_pickle')
+        df = pd.read_pickle(self.bot_config['load_data_pickle_path'])
+        print('after pickle')
+        for ind, row in df.iterrows():
+            print(ind)
+            try:
+                store_cat = StoreCategory.objects.get(title=row['intent'])
+            except StoreCategory.DoesNotExist:
+                store_cat = StoreCategory.objects.create(title=row['intent'])
+
+            is_avail_for_subscr = not row['intent'] in ['wc', 'bankomat']
+            print('after store_cat')
+            store = Store.objects.create(
+                    is_active=row['is_active'],
+                    title=row['long_name'],
+                    brand=row['short_name'],
+                    keywords=row['keywords'],
+                    short_descr=row['short_descr'],
+                    long_descr=row['long_descr'],
+                    floor=int(row['floor']),
+                    phone_number='',
+                    plan_image=row['map'],
+                    store_image=row['store'],
+                    bot=self.acur_bot,
+                    is_availible_for_subscription=is_avail_for_subscr,
+                    cat=store_cat)
+
+            print('store', store)
+            store.get_plan_pic_file_id(context.bot)
+            #store.get_store_pic_file_id(context.bot)
+
+            # context.bot.send_media_group(chat_id=update.effective_chat.id, media=[inp_photo, inp_photo2])
+            # time.sleep(2)
+
     def keyboard_callback_handler(self, update: Update, context: CallbackContext):
         query = update.callback_query
         data = query.data
         real_data = json.loads(data)
         print('real_data', real_data)
 
-        bot_user = get_bot_user(update.effective_user)
+        bot_user = self.get_bot_user(update.effective_user)
         bot_user.upd_last_active()
-
-        #try:
-        #    if 'org_id' in real_data:
-        #        org = Store.objects.get(pk=real_data['org_id'])
-        #except Store.DoesNotExist:
-        #    return
 
         if real_data['type'] == 'dialog' and real_data['dial_id'] == 'spisok':
             node_id = real_data['node_id']
@@ -249,7 +134,7 @@ class Command(BaseCommand):
         if real_data['type'] in ['show_org'] and 'org_id' in real_data:
             try:
                 if 'org_id' in real_data:
-                    org = Store.objects.get(pk=real_data['org_id'])
+                    org = Store.objects.get(pk=real_data['org_id'], bot = self.acur_bot)
             except Store.DoesNotExist:
                return
 
@@ -259,7 +144,7 @@ class Command(BaseCommand):
 
             # todo капчн ограничен по размеру, а еще нужно экранировать слешом \ спец символы
             #card_text = org.get_card_text()
-            #inp_photo = InputMediaPhoto(org.get_plan_pic_file_id(context.bot), caption=card_text, parse_mode="Markdown")
+            #inp_photo = InputMediaPhoto(org.get_plan_pic_file_id(context.bot), :   =card_text, parse_mode="Markdown")
             #inp_photo2 = InputMediaPhoto(org.get_store_pic_file_id(context.bot))
             #context.bot.send_media_group(chat_id=update.effective_chat.id, media=[inp_photo, inp_photo2])
 
@@ -268,7 +153,7 @@ class Command(BaseCommand):
             print('params',params)
             context.bot.send_photo(chat_id=update.effective_chat.id,
                                    photo=org.get_plan_pic_file_id(context.bot),
-                                   caption=params['text'],
+                                   caption=params['text'][:MAX_CAPTION_SIZE],
                                    parse_mode=params['parse_mode'],
                                    reply_markup=params['reply_markup'])
 
@@ -285,7 +170,7 @@ class Command(BaseCommand):
         if real_data['type'] == 'subscr' and 'org_id' in real_data:
 
             try:
-                org = Store.objects.get(pk=real_data['org_id'])
+                org = Store.objects.get(pk=real_data['org_id'], bot = self.acur_bot)
             except Store.DoesNotExist:
                return
             print('subscr')
@@ -296,20 +181,20 @@ class Command(BaseCommand):
             print('after create')
             params = self.get_card_message_telegram_req_params(org, bot_user)
             print('after get_card_message_telegram_req_params')
-            query.edit_message_caption(params['text'],
+            query.edit_message_caption(params['text'][:MAX_CAPTION_SIZE],
                                        reply_markup=params['reply_markup'],
                                        parse_mode=params['parse_mode'])
 
         if real_data['type'] == 'unsubscr' and 'org_id' in real_data:
             try:
-                org = Store.objects.get(pk=real_data['org_id'])
+                org = Store.objects.get(pk=real_data['org_id'], bot = self.acur_bot)
             except Store.DoesNotExist:
                return
             print('unsubscr')
             OrgSubscription.objects.filter(bot_user=bot_user,org=org ).delete()
             query.answer(show_alert=False, text="Вы успешно отписаны!")
             params = self.get_card_message_telegram_req_params(org, bot_user)
-            query.edit_message_caption(params['text'],
+            query.edit_message_caption(params['text'][:MAX_CAPTION_SIZE],
                                        reply_markup=params['reply_markup'],
                                        parse_mode=params['parse_mode'])
 
@@ -333,7 +218,7 @@ class Command(BaseCommand):
 
         if node_info['type'] == 'show_orgs':
             print("if node_info['type'] == 'show_orgs':")
-            intent_res = list(Store.objects.filter(cat__title__in = node_info['intents_list']))
+            intent_res = list(Store.objects.filter(cat__title__in = node_info['intents_list'], bot = self.acur_bot))
             if node_info['l_str_bound_eq']:
                 intent_res = [org for org in intent_res if org.title>=node_info['l_str_bound_eq']]
             if node_info['r_str_bound_neq']:
@@ -395,7 +280,7 @@ class Command(BaseCommand):
 
         print('handle spisok')
 
-        bot_user = get_bot_user(update.message.from_user)
+        bot_user = self.get_bot_user(update.message.from_user)
         bot_user.upd_last_active()
 
         print('before json.load')
@@ -414,15 +299,15 @@ class Command(BaseCommand):
 
         print('handle spisok')
 
-        bot_user = get_bot_user(update.message.from_user)
+        bot_user = self.get_bot_user(update.message.from_user)
         bot_user.upd_last_active()
 
         print('before json.load')
 
-        orgs_list = list(Store.objects.filter(is_active=True))
+        orgs_list = list(Store.objects.filter(is_active=True, bot = self.acur_bot))
         if len(orgs_list) > 50:
             update.message.reply_text(
-                'Карантин закончился, открыто более 50 магазинов!\n Воспользуйтесь обычым списком!',
+                'Карантин закончился, открыто более 50 магазинов!\nВоспользуйтесь обычным списком!',
                 parse_mode="Markdown")
         else:
             params = self.get_orgs_tree_dialog_teleg_params(-2, orgs_list)
@@ -456,13 +341,13 @@ class Command(BaseCommand):
                 "reply_markup": InlineKeyboardMarkup(keyboard)}
 
     def msg_handler(self, update: Update, context: CallbackContext):
-        bot_user = get_bot_user(update.message.from_user)
+        bot_user = self.get_bot_user(update.message.from_user)
         bot_user.upd_last_active()
         MessageLog.objects.create(bot_user = bot_user, text=update.message.text)
 
 
         if update.message.text == 'загрузите данные':
-            load_mags(update, context)
+            self.load_mags(update, context)
             context.bot.send_message(chat_id=update.effective_chat.id, text='Загрузили!')
             return
 
@@ -495,7 +380,7 @@ class Command(BaseCommand):
 
     def org_name_find(self, query):
         res_dict = {}
-        for store in Store.objects.all():
+        for store in Store.objects.filter(bot = self.acur_bot):
             mag_short_name = store.brand.lower()
 
             mag_short_name_trnaslit = cyrtranslit.to_cyrillic(mag_short_name.lower(), 'ru')
@@ -506,8 +391,6 @@ class Command(BaseCommand):
         return sorted(filtered_res, key=filtered_res.get, reverse=True)
 
     def prebot(self, msg):
-
-
         name_result_list = self.org_name_find(msg)
 
         if name_result_list:
@@ -515,21 +398,40 @@ class Command(BaseCommand):
             #return 'Возможно, вы имели в виду:\n' + '\n'.join(map(lambda x: x.title, stores))
             return -1, stores
 
-        r = requests.get('http://127.0.0.1:8000/model/?format=json', data={'context': msg})
+        r = requests.get(self.bot_config['model_api_url'], data={'context': msg})
         intent_type =r.json()['intent_type']
+        print('intent_type', intent_type)
+        print('self.intent_to_node', self.intent_to_node)
+        print('self.intent_to_node[intent_type]', self.intent_to_node[intent_type])
         #intent_type = 'juveliry'
 
 
         #stores = Store.objects.filter(cat=StoreCategory.objects.get(title=intent_type))
         return self.intent_to_node[intent_type], []
 
-    def handle(self, *args, **options):
+
+
+
+
+
+    def add_arguments(self, parser):
+        parser.add_argument('config_path', type=str, help='Path to tc_bot_config')
+
+
+    def handle(self, *args, **kwargs):
         self.help = 'Телеграм-бот'
+        config_path = kwargs['config_path']
+        print('config_path', config_path)
+
+        self.bot_config = json.load(open(config_path))
+        print('bot_config readed')
         # 1 -- правильное подключение
         #self.load_model('acur_intent_config.json')
 
-        self.org_hier_dialog = json.load(open('org_hier_dialog.json', 'r'))
-        self.intent_to_node = json.load(open('intent_to_node.json', 'r'))
+        self.org_hier_dialog = self.bot_config['org_hier_dialog']
+        self.intent_to_node = self.bot_config['intent_to_node']
+
+        self.TOKEN = self.bot_config['token']
 
         request = Request(
             connect_timeout=0.5,
@@ -537,18 +439,25 @@ class Command(BaseCommand):
         )
         bot = Bot(
             request=request,
-            token=settings.TOKEN,
+            token=self.TOKEN,
             base_url=getattr(settings, 'PROXY_URL', None),
         )
         print(bot.get_me())
 
+
+        bot_defaults = {'telegram_bot_id': bot.get_me()['id'],
+                        'first_name': bot.get_me()['first_name'],
+                        'username':bot.get_me()['username']}
+        self.acur_bot, _ = AcurBot.objects.update_or_create(
+            token=self.TOKEN, defaults = bot_defaults
+        )
 
         updater = Updater(
             bot=bot,
             use_context=True,
         )
 
-        updater.dispatcher.add_handler(CommandHandler('start', handle_welcome))
+        updater.dispatcher.add_handler(CommandHandler('start', self.handle_welcome))
         updater.dispatcher.add_handler(CommandHandler('spisok', self.handle_spisok))
         updater.dispatcher.add_handler(CommandHandler('opened', self.handle_opened))
 

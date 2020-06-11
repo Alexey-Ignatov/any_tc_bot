@@ -17,7 +17,22 @@ class StoreCategory(models.Model):
         return self.title
 
 
+class AcurBot(models.Model):
+    token = models.CharField(max_length=200)
+
+    telegram_bot_id = models.CharField(max_length=200)
+    first_name = models.CharField(max_length=200)
+    username = models.CharField(max_length=200)
+
+
+    def __str__(self):
+        return self.username
+
+
+
 class Store(models.Model):
+    bot = models.ForeignKey(AcurBot, on_delete=models.DO_NOTHING)
+
     is_active = models.BooleanField(default=True)
 
     title = models.CharField(max_length=200)
@@ -67,10 +82,10 @@ class Store(models.Model):
         # todo тут хорошо бы проверять не имя, а хэш картинки
         token_to_file_dict = json.loads(self.plan_pic_file_json)
         print('token_to_file_dict', token_to_file_dict)
-        if settings.TOKEN in token_to_file_dict:
-            url = token_to_file_dict[settings.TOKEN]['image_url']
+        if self.bot.token in token_to_file_dict:
+            url = token_to_file_dict[self.bot.token]['image_url']
             if url == self.plan_image.url:
-                return token_to_file_dict[settings.TOKEN]['telegr_file_id']
+                return token_to_file_dict[self.bot.token]['telegr_file_id']
 
         print('after if')
         print('settings.BASE_DIR + self.plan_image.url', settings.BASE_DIR + self.plan_image.url)
@@ -78,12 +93,12 @@ class Store(models.Model):
             print('in_with')
             msg = bot.send_photo(646380871, f)
         print('after if')
-        token_to_file_dict[settings.TOKEN] = {'image_url':self.plan_image.url,
+        token_to_file_dict[self.bot.token] = {'image_url':self.plan_image.url,
                                               'telegr_file_id':msg.photo[0].file_id}
 
         self.plan_pic_file_json = json.dumps(token_to_file_dict)
         self.save()
-        return token_to_file_dict[settings.TOKEN]['telegr_file_id']
+        return token_to_file_dict[self.bot.token]['telegr_file_id']
 
     def get_store_pic_file_id(self, bot):
         if not self.store_image.url:
@@ -91,21 +106,21 @@ class Store(models.Model):
         print('get_store_pic_file_id not none')
         # todo тут хорошо бы проверять не имя, а хэш картинки
         token_to_file_dict = json.loads(self.store_pic_file_json)
-        if settings.TOKEN in token_to_file_dict:
-            url = token_to_file_dict[settings.TOKEN]['image_url']
+        if self.bot.token in token_to_file_dict:
+            url = token_to_file_dict[self.bot.token]['image_url']
             if url == self.store_image.url:
-                return token_to_file_dict[settings.TOKEN]['telegr_file_id']
+                return token_to_file_dict[self.bot.token]['telegr_file_id']
 
         with open(settings.BASE_DIR + self.store_image.url, 'rb') as f:
             print('in_with')
             msg = bot.send_photo(646380871, f)
 
-        token_to_file_dict[settings.TOKEN] = {'image_url': self.store_image.url,
+        token_to_file_dict[self.bot.token] = {'image_url': self.store_image.url,
                                               'telegr_file_id': msg.photo[0].file_id}
 
         self.store_pic_file_json = json.dumps(token_to_file_dict)
         self.save()
-        return token_to_file_dict[settings.TOKEN]['telegr_file_id']
+        return token_to_file_dict[self.bot.token]['telegr_file_id']
 
     def __str__(self):
         return self.title
@@ -113,6 +128,8 @@ class Store(models.Model):
 
 
 class BotUser(models.Model):
+    bot = models.ForeignKey(AcurBot, on_delete=models.DO_NOTHING)
+
     bot_user_id  = models.CharField(max_length=100)
     main_resp_path = models.CharField(max_length=100)
     first_name = models.CharField(max_length=100)
