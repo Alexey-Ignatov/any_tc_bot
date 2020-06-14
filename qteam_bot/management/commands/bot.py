@@ -413,8 +413,6 @@ class Command(BaseCommand):
 
 
 
-
-
         @self.dp.message_handler(regexp='(^cat[s]?$|puss)')
         async def cats(message: types.Message):
             with open('data/cats.jpg', 'rb') as photo:
@@ -489,7 +487,9 @@ class Command(BaseCommand):
                     except Store.DoesNotExist:
                         return
 
-                    photo_id = await database_sync_to_async(org.get_plan_pic_file_id)(self.dp.bot)
+                    #token = await database_sync_to_async(org.get_token)()
+                    #print('token',token )
+                    photo_id = await org.get_plan_pic_file_id(self.dp.bot)
 
                     params = await self.get_card_message_telegram_req_params(org, bot_user)
                     await callback.message.answer_photo(
@@ -501,7 +501,6 @@ class Command(BaseCommand):
 
 
             if real_data['type'] == 'subscr' and 'org_id' in real_data:
-
                 try:
                     org = await database_sync_to_async(Store.objects.get)(pk=real_data['org_id'], bot=self.acur_bot)
                 except Store.DoesNotExist:

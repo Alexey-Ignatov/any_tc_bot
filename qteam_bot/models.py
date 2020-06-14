@@ -9,7 +9,8 @@ import json
 from django.utils import timezone
 from django.conf import settings
 import datetime
-from asgiref.sync import async_to_sync
+from channels.db import database_sync_to_async
+
 class StoreCategory(models.Model):
     title = models.CharField(max_length=200)
 
@@ -74,8 +75,10 @@ class Store(models.Model):
             res_text += ": {}".format(self.short_descr)
         return res_text
 
+    def get_token(self):
+        return self.bot.token
 
-    def get_plan_pic_file_id(self, bot):
+    async def get_plan_pic_file_id(self, bot):
         if not self.plan_image.url:
             return None
         print('get_plan_pic_file_id not none')
@@ -83,23 +86,25 @@ class Store(models.Model):
         # todo тут хорошо бы проверять не имя, а хэш картинки
         token_to_file_dict = json.loads(self.plan_pic_file_json)
         print('token_to_file_dict', token_to_file_dict)
-        if self.bot.token in token_to_file_dict:
-            url = token_to_file_dict[self.bot.token]['image_url']
+        token = await database_sync_to_async(self.get_token)()
+
+        if token in token_to_file_dict:
+            url = token_to_file_dict[token]['image_url']
             if url == self.plan_image.url:
-                return token_to_file_dict[self.bot.token]['telegr_file_id']
+                return token_to_file_dict[token]['telegr_file_id']
 
         print('after if')
         print('settings.BASE_DIR + self.plan_image.url', settings.BASE_DIR + self.plan_image.url)
         with open(settings.BASE_DIR + self.plan_image.url, 'rb') as f:
             print('in_with')
-            msg = bot.send_photo(646380871, f)
+            msg = await bot.send_photo(646380871, f)
         print('after if')
-        token_to_file_dict[self.bot.token] = {'image_url':self.plan_image.url,
+        token_to_file_dict[token] = {'image_url':self.plan_image.url,
                                               'telegr_file_id':msg.photo[0].file_id}
 
         self.plan_pic_file_json = json.dumps(token_to_file_dict)
-        self.save()
-        return token_to_file_dict[self.bot.token]['telegr_file_id']
+        await database_sync_to_async(self.save)()
+        return token_to_file_dict[token]['telegr_file_id']
 
     def get_store_pic_file_id(self, bot):
         if not self.store_image.url:
@@ -114,7 +119,7 @@ class Store(models.Model):
 
         with open(settings.BASE_DIR + self.store_image.url, 'rb') as f:
             print('in_with')
-            msg = async_to_sync(bot.send_photo)(646380871, f)
+            msg = bot.send_photo(646380871, f)
 
         token_to_file_dict[self.bot.token] = {'image_url': self.store_image.url,
                                               'telegr_file_id': msg.photo[0].file_id}
