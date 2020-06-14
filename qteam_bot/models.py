@@ -36,8 +36,6 @@ class Store(models.Model):
     is_active = models.BooleanField(default=True)
 
     title = models.CharField(max_length=200)
-
-    alter_names = models.CharField(max_length=1000, default='')
     short_descr = models.CharField(max_length=1000)
     long_descr = models.CharField(max_length=2000)
 
@@ -76,7 +74,7 @@ class Store(models.Model):
         return res_text
 
 
-    async def get_plan_pic_file_id(self, bot):
+    def get_plan_pic_file_id(self, bot):
         if not self.plan_image.url:
             return None
         print('get_plan_pic_file_id not none')
@@ -93,7 +91,7 @@ class Store(models.Model):
         print('settings.BASE_DIR + self.plan_image.url', settings.BASE_DIR + self.plan_image.url)
         with open(settings.BASE_DIR + self.plan_image.url, 'rb') as f:
             print('in_with')
-            msg = await bot.send_photo(646380871, f)
+            msg = bot.send_photo(646380871, f)
         print('after if')
         token_to_file_dict[self.bot.token] = {'image_url':self.plan_image.url,
                                               'telegr_file_id':msg.photo[0].file_id}
