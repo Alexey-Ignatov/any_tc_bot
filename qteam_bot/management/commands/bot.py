@@ -119,17 +119,6 @@ class Command(BaseCommand):
 
         return bot_user
 
-    def handle_welcome(self, update: Update, context: CallbackContext):
-
-        bot_user = self.get_bot_user(update.message.from_user)
-        bot_user.upd_last_active()
-
-        StartEvent.objects.create(bot_user=bot_user)
-
-        update.message.reply_photo(self.bot_config['welcome_photo_url'],
-                                   caption=self.bot_config['welcome_text'][:MAX_CAPTION_SIZE], parse_mode="Markdown")
-
-
 
     async def load_mags(self):
         import time
@@ -242,58 +231,6 @@ class Command(BaseCommand):
                 "parse_mode": "Markdown",
                 "reply_markup": keyboard}
 
-    def load_model(self, config_path='acur_intent_config.json'):
-        import copy
-
-        import pickle
-        my_config = json.load(open(config_path))
-        tmp_config = copy.deepcopy(my_config)
-        tmp_config['chainer']['out'] = ['y_pred_labels', 'y_pred_probas']
-        tmp_config['chainer']['pipe'][-2]['out'] = ['y_pred_ids', 'y_pred_probas']
-        self.model = build_model(tmp_config)
-        #self.in_2_label = pickle.load(open('in_2_label.pkl', 'rb'))
-        print('модель загрузили кое-как')
-
-    @log_errors
-    def handle_spisok(self, update: Update, context: CallbackContext):
-
-        print('handle spisok')
-
-        bot_user = self.get_bot_user(update.message.from_user)
-        bot_user.upd_last_active()
-
-        print('before json.load')
-
-        text = "Это начала диалога  про список магазинов"
-        root_node_id = 0
-        print('before params')
-        params =  self.get_orgs_tree_dialog_teleg_params(root_node_id)
-        print('after params')
-        print('params', params)
-        update.message.reply_text(params['text'],
-                                        reply_markup=params['reply_markup'],
-                                        parse_mode=params['parse_mode'])
-
-    @log_errors
-    def handle_opened(self, update: Update, context: CallbackContext):
-
-        print('handle spisok')
-
-        bot_user = self.get_bot_user(update.message.from_user)
-        bot_user.upd_last_active()
-
-        print('before json.load')
-
-        orgs_list = list(Store.objects.filter(is_active=True, bot = self.acur_bot))
-        if len(orgs_list) > 50:
-            update.message.reply_text(
-                'Карантин закончился, открыто более 50 магазинов!\nВоспользуйтесь обычным списком!',
-                parse_mode="Markdown")
-        else:
-            params = self.get_orgs_tree_dialog_teleg_params(-2, orgs_list)
-            update.message.reply_text(params['text'],
-                                      reply_markup=params['reply_markup'],
-                                      parse_mode=params['parse_mode'])
 
     @log_errors
     async def get_card_message_telegram_req_params(self, org, bot_user):
@@ -413,27 +350,37 @@ class Command(BaseCommand):
 
 
 
-        @self.dp.message_handler(regexp='(^cat[s]?$|puss)')
-        async def cats(message: types.Message):
-            with open('data/cats.jpg', 'rb') as photo:
-                '''
-                # Old fashioned way:
-                await bot.send_photo(
-                    message.chat.id,
-                    photo,
-                    caption='Cats are here 😺',
-                    reply_to_message_id=message.message_id,
-                )
-                '''
+        @self.dp.message_handler(commands=['spisok'])
+        async def handle_spisok(message: types.Message):
 
-                await message.reply_photo(photo, caption='Cats are here 😺')
+            print('handle spisok')
 
-        #@dp.message_handler()
-        #async def echo(self, message: types.Message):
-        #    # old style:
-        #    # await bot.send_message(message.chat.id, message.text)
+            bot_user = await self.get_bot_user(message.from_user)
+            await database_sync_to_async(bot_user.upd_last_active)()
 
-        #    await message.answer(self.help)
+            print('before json.load')
+
+            text = "Это начала диалога  про список магазинов"
+            root_node_id = 0
+            print('before params')
+            params = await self.get_orgs_tree_dialog_teleg_params(root_node_id)
+            print('after params')
+            print('params', params)
+            await message.answer(params['text'],
+                                 reply_markup=params['reply_markup'],
+                                 parse_mode=params['parse_mode'])
+
+        @self.dp.message_handler(commands=['start'])
+        async def handle_welcome(message: types.Message):
+
+            bot_user = await self.get_bot_user(message.from_user)
+            await database_sync_to_async(bot_user.upd_last_active)()
+
+            await database_sync_to_async(StartEvent.objects.create)(bot_user=bot_user)
+
+            await message.answer_photo(self.bot_config['welcome_photo_url'],
+                                       caption=self.bot_config['welcome_text'][:MAX_CAPTION_SIZE],
+                                       parse_mode="Markdown")
 
 
 
@@ -530,18 +477,38 @@ class Command(BaseCommand):
                                            reply_markup=params['reply_markup'],
                                            parse_mode=params['parse_mode'])
 
-        #updater.dispatcher.add_handler(CommandHandler('start', self.handle_welcome))
-        #updater.dispatcher.add_handler(CommandHandler('spisok', self.handle_spisok))
-        #updater.dispatcher.add_handler(CommandHandler('opened', self.handle_opened))
+            @self.dp.message_handler(commands=['spisok'])
+            async def handle_spisok(message: types.Message):
 
-        #updater.dispatcher.add_handler(MessageHandler(Filters.all,self.msg_handler))
-        #updater.dispatcher.add_handler(CallbackQueryHandler(self.keyboard_callback_handler, pass_chat_data=True))
+                print('handle spisok')
 
-        #updater.dispatcher.add_handler(MessageHandler(Filters.text, self.msg_handler))
+                bot_user = await self.get_bot_user(message.from_user)
+                await database_sync_to_async(bot_user.upd_last_active)()
 
-        # 3 -- запустить бесконечную обработку входящих сообщений
-        #updater.start_polling()
-        #updater.idle()
+                print('before json.load')
+
+                text = "Это начала диалога  про список магазинов"
+                root_node_id = 0
+                print('before params')
+                params = await self.get_orgs_tree_dialog_teleg_params(root_node_id)
+                print('after params')
+                print('params', params)
+                await message.answer(params['text'],
+                                     reply_markup=params['reply_markup'],
+                                     parse_mode=params['parse_mode'])
+
+            @self.dp.message_handler(commands=['start'])
+            async def handle_welcome(message: types.Message):
+
+                bot_user = await self.get_bot_user(message.from_user)
+                await database_sync_to_async(bot_user.upd_last_active)()
+
+                await database_sync_to_async(StartEvent.objects.create)(bot_user=bot_user)
+
+                await message.answer_photo(self.bot_config['welcome_photo_url'],
+                                           caption=self.bot_config['welcome_text'][:MAX_CAPTION_SIZE],
+                                           parse_mode="Markdown")
+
 
 
         executor.start_polling(dp, skip_updates=True, on_startup=on_start,)
