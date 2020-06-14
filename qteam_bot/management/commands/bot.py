@@ -1,14 +1,12 @@
 from django.core.management.base import BaseCommand
-from django.conf import settings
 from telegram import Bot
-from telegram import Update
-#from telegram import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
-from telegram.ext import CallbackContext
-from telegram.ext import CommandHandler, CallbackQueryHandler, MessageHandler
-from telegram.ext import Filters
-from telegram.ext import MessageHandler
-from telegram.ext import Updater
-from telegram.utils.request import Request
+
+import json
+import pandas as pd
+from deeppavlov import train_model, configs, build_model
+
+from fuzzywuzzy import fuzz
+import cyrtranslit
 from aiogram.types import Message, CallbackQuery
 from collections import defaultdict
 import requests
@@ -20,11 +18,15 @@ from aiogram.types.inline_keyboard import InlineKeyboardButton, InlineKeyboardMa
 from aiogram.types.reply_keyboard import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from channels.db import database_sync_to_async
 from asgiref.sync import sync_to_async
+from telebot import types
+from qteam_bot.models import BotUser,Store, StoreCategory,StartEvent,CardShowList, MessageLog, OrgSubscription, AcurBot
+from django.utils import timezone
+MAX_CAPTION_SIZE = 1000
+
 
 def norm_name(name):
     name_regex = '[a-zA-Zа-яА-Я]+|\d+'
     return regexp_tokenize((name).lower(), name_regex)
-
 
 def get_n_grams(name, ngram_len):
     a = norm_name(str(name).lower())
@@ -36,7 +38,6 @@ def get_n_grams(name, ngram_len):
         res_list.append(' '.join(a[i:i + ngram_len]))
     return res_list
 
-
 def find_comp_in_msg(msg, company_name):
     comp_toks_num = len(norm_name(company_name))
     company_name = ' '.join(norm_name(company_name))
@@ -47,12 +48,10 @@ def find_comp_in_msg(msg, company_name):
         scores_list.append(fuzz.ratio(sub_name, company_name))
     return max(scores_list)
 
-
 def get_best_keyword_match(msg, kw_to_id, th):
     score_dict = {}
     for cmp_name, brand_ind in kw_to_id.items():
         score_dict[cmp_name] = find_comp_in_msg(msg, cmp_name)
-    my_dict = pd.Series(score_dict).sort_values().iloc[-1:].to_dict()
 
     res_list = []
     for name in sorted(score_dict, key=score_dict.get, reverse=True):
@@ -60,44 +59,6 @@ def get_best_keyword_match(msg, kw_to_id, th):
             continue
         res_list += kw_to_id[name]
     return res_list
-
-
-from telegram import (InputMediaVideo, InputMediaPhoto, InputMediaAnimation, Message, InputFile,
-                      InputMediaAudio, InputMediaDocument, PhotoSize)
-
-import telebot
-from telebot import types
-import json
-
-from qteam_bot.models import BotUser,Store, StoreCategory,StartEvent,CardShowList, MessageLog, OrgSubscription, AcurBot
-from random import shuffle
-from telegram.error import Unauthorized
-from telegram.error import BadRequest
-
-from django.utils import timezone
-import datetime
-
-
-import json
-import pandas as pd
-from deeppavlov import train_model, configs, build_model
-
-from fuzzywuzzy import fuzz
-import cyrtranslit
-MAX_CAPTION_SIZE = 1000
-
-def log_errors(f):
-    def inner(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            error_message = 'Произошла плохая ошибка: {}'.format(e)
-            print(error_message)
-            raise e
-
-    return inner
-
-
 
 
 
@@ -118,9 +79,6 @@ class Command(BaseCommand):
             bot_user = await database_sync_to_async(BotUser.objects.filter)(bot_user_id=str(from_user.id), bot=self.acur_bot)[0]
 
         return bot_user
-
-
-
 
     async def load_mags(self):
         import time
@@ -159,8 +117,6 @@ class Command(BaseCommand):
 
             # context.bot.send_media_group(chat_id=update.effective_chat.id, media=[inp_photo, inp_photo2])
             # time.sleep(2)
-
-
 
     async def get_orgs_tree_dialog_teleg_params(self, node_id, orgs_add_to_show = []):
         print('get_orgs_tree_dialog_teleg_params')
@@ -247,7 +203,6 @@ class Command(BaseCommand):
         print('модель загрузили кое-как')
 
 
-    @log_errors
     async def get_card_message_telegram_req_params(self, org, bot_user):
         text = org.get_card_text()
 
@@ -275,8 +230,6 @@ class Command(BaseCommand):
                 "reply_markup": keyboard}
 
 
-
-    @log_errors
     async def org_find_name_keywords(self, query):
         kw_to_ind = defaultdict(list)
         print('self.acur_bot', self.acur_bot)
@@ -304,33 +257,22 @@ class Command(BaseCommand):
         print(kw_to_ind)
         return get_best_keyword_match(query, brand_name_to_id, 80)+get_best_keyword_match(query, kw_to_ind, 75)
 
-    @log_errors
+
     async def prebot(self, msg):
         print('in prebot')
         name_result_list = await self.org_find_name_keywords(msg)
-        #name_result_list = []
         if name_result_list:
             stores = await database_sync_to_async(Store.objects.filter)(pk__in=name_result_list)
             stores = await sync_to_async(list)(stores)
-            #return 'Возможно, вы имели в виду:\n' + '\n'.join(map(lambda x: x.title, stores))
             return -1, stores
 
         r = requests.get(self.bot_config['model_api_url'], data={'context': msg})
         intent_type =r.json()['intent_type']
-        print('intent_type', intent_type)
-        print('self.intent_to_node[intent_type]', self.intent_to_node[intent_type])
-        #intent_type = 'juveliry'
-
-
-        #stores = Store.objects.filter(cat=StoreCategory.objects.get(title=intent_type))
         return self.intent_to_node[intent_type], []
-
 
 
     def add_arguments(self, parser):
         parser.add_argument('config_path', type=str, help='Path to tc_bot_config')
-
-
 
     def handle(self, *args, **kwargs):
         self.help = 'Телеграм-бот'
@@ -489,19 +431,6 @@ class Command(BaseCommand):
                 await callback.message.edit_caption(params['text'][:MAX_CAPTION_SIZE],
                                            reply_markup=params['reply_markup'],
                                            parse_mode=params['parse_mode'])
-
-        #updater.dispatcher.add_handler(CommandHandler('start', self.handle_welcome))
-        #updater.dispatcher.add_handler(CommandHandler('spisok', self.handle_spisok))
-        #updater.dispatcher.add_handler(CommandHandler('opened', self.handle_opened))
-
-        #updater.dispatcher.add_handler(MessageHandler(Filters.all,self.msg_handler))
-        #updater.dispatcher.add_handler(CallbackQueryHandler(self.keyboard_callback_handler, pass_chat_data=True))
-
-        #updater.dispatcher.add_handler(MessageHandler(Filters.text, self.msg_handler))
-
-        # 3 -- запустить бесконечную обработку входящих сообщений
-        #updater.start_polling()
-        #updater.idle()
 
 
         executor.start_polling(dp, skip_updates=True, on_startup=on_start,)
