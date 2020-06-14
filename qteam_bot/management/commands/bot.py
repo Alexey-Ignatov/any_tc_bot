@@ -129,8 +129,9 @@ class Command(BaseCommand):
         update.message.reply_photo(self.bot_config['welcome_photo_url'],
                                    caption=self.bot_config['welcome_text'][:MAX_CAPTION_SIZE], parse_mode="Markdown")
 
-    @log_errors
-    def load_mags(self, update: Update, context: CallbackContext):
+
+
+    async def load_mags(self):
         import time
 
         print('before_pickle')
@@ -139,13 +140,13 @@ class Command(BaseCommand):
         for ind, row in df.iterrows():
             print(ind)
             try:
-                store_cat = StoreCategory.objects.get(title=row['intent'])
+                store_cat = await database_sync_to_async(StoreCategory.objects.get)(title=row['intent'])
             except StoreCategory.DoesNotExist:
-                store_cat = StoreCategory.objects.create(title=row['intent'])
+                store_cat = await database_sync_to_async(StoreCategory.objects.create)(title=row['intent'])
 
             is_avail_for_subscr = not row['intent'] in ['wc', 'bankomat']
             print('after store_cat')
-            store = Store.objects.create(
+            store = await database_sync_to_async(Store.objects.create)(
                     is_active=row['is_active'],
                     title=row['long_name'],
                     brand=row['short_name'],
@@ -162,12 +163,11 @@ class Command(BaseCommand):
                     cat=store_cat)
 
             print('store', store)
-            store.get_plan_pic_file_id(context.bot)
+            store.get_plan_pic_file_id(self.dp.bot)
             #store.get_store_pic_file_id(context.bot)
 
             # context.bot.send_media_group(chat_id=update.effective_chat.id, media=[inp_photo, inp_photo2])
             # time.sleep(2)
-
 
 
     async def get_orgs_tree_dialog_teleg_params(self, node_id, orgs_add_to_show = []):
@@ -446,10 +446,10 @@ class Command(BaseCommand):
             await database_sync_to_async(bot_user.upd_last_active)()
             await database_sync_to_async(MessageLog.objects.create)(bot_user=bot_user, text=message.text)
 
-            #if message.text == 'загрузите данные':
-            #    self.load_mags(update, context)
-            #    context.bot.send_message(chat_id=update.effective_chat.id, text='Загрузили!')
-            #    return
+            if message.text == 'загрузите данные':
+                await self.load_mags()
+                await message.answer(text='Загрузили!')
+                return
 
             node_id_to_show, org_list = await self.prebot(message.text)
             print('org_list', org_list)

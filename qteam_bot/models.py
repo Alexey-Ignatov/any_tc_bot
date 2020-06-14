@@ -9,7 +9,7 @@ import json
 from django.utils import timezone
 from django.conf import settings
 import datetime
-
+from asgiref.sync import async_to_sync
 class StoreCategory(models.Model):
     title = models.CharField(max_length=200)
 
@@ -38,6 +38,7 @@ class Store(models.Model):
     title = models.CharField(max_length=200)
     short_descr = models.CharField(max_length=1000)
     long_descr = models.CharField(max_length=2000)
+    alter_names = models.CharField(max_length=1000, default='')
 
     brand = models.CharField(max_length=200)
     keywords = models.TextField(max_length=2000)
@@ -113,7 +114,7 @@ class Store(models.Model):
 
         with open(settings.BASE_DIR + self.store_image.url, 'rb') as f:
             print('in_with')
-            msg = bot.send_photo(646380871, f)
+            msg = async_to_sync(bot.send_photo)(646380871, f)
 
         token_to_file_dict[self.bot.token] = {'image_url': self.store_image.url,
                                               'telegr_file_id': msg.photo[0].file_id}
