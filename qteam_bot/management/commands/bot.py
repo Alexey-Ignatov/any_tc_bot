@@ -122,7 +122,7 @@ class Command(BaseCommand):
                     cat=store_cat)
 
             print('store', store)
-            store.get_plan_pic_file_id(self.dp.bot)
+            await store.get_plan_pic_file_id(self.dp.bot)
             #store.get_store_pic_file_id(context.bot)
 
             # context.bot.send_media_group(chat_id=update.effective_chat.id, media=[inp_photo, inp_photo2])
