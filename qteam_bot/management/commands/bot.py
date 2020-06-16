@@ -121,7 +121,6 @@ class Command(BaseCommand):
                     is_availible_for_subscription=is_avail_for_subscr,
                     cat=store_cat)
 
-            print('store', store)
             await store.get_plan_pic_file_id(self.dp.bot)
             #store.get_store_pic_file_id(context.bot)
 
@@ -131,7 +130,6 @@ class Command(BaseCommand):
 
     async def get_orgs_tree_dialog_teleg_params(self, node_id, orgs_add_to_show = []):
         print('get_orgs_tree_dialog_teleg_params')
-        print(self.org_hier_dialog)
         node_info = [node for node in self.org_hier_dialog if node['node_id'] == node_id][0]
         print('node_info', node_info)
         text = node_info['text']
@@ -164,17 +162,10 @@ class Command(BaseCommand):
             extra_list = Store.objects.filter(pk__in = node_info['extra_orgs_list'])
             extra_list = list(extra_list)+list(orgs_add_to_show)
 
-
-
-
-            print('intent_res, extra_list', intent_res, extra_list)
             stores_to_show = list(set(intent_res)|set(extra_list))
-            print('stores_to_show', stores_to_show)
 
             text += '\n'
             text += ('\n').join(["{}. {}".format(i+1, org.get_inlist_descr()) for i, org in enumerate(stores_to_show)])
-            len(text)
-            print('text', text)
 
             keyboard_line_list = []
             for i, org in enumerate(stores_to_show):
@@ -196,7 +187,6 @@ class Command(BaseCommand):
                                             'type': 'dialog'}))
             keyboard.row(btn)
 
-        print('keyboard',keyboard)
         return {"text":text ,
                 "parse_mode": "Markdown",
                 "reply_markup": keyboard}
@@ -234,7 +224,6 @@ class Command(BaseCommand):
     async def org_find_name_keywords(self, query):
 
         kw_to_ind = defaultdict(list)
-        print('self.acur_bot', self.acur_bot)
         stores_list = await database_sync_to_async(Store.objects.filter)(bot = self.acur_bot)
         stores_list = await sync_to_async(list)(stores_list)
         for store in stores_list:
@@ -255,8 +244,7 @@ class Command(BaseCommand):
             for kw in store.alter_names.split(','):
                 brand_name_to_id[kw.strip().lower()] += [store.id]
 
-        print(brand_name_to_id)
-        print(kw_to_ind)
+
         return get_best_keyword_match(query, brand_name_to_id, 90)+get_best_keyword_match(query, kw_to_ind, 80)
 
 
@@ -273,7 +261,6 @@ class Command(BaseCommand):
         r = requests.get(self.bot_config['model_api_url'], data={'context': msg})
         intent_type =r.json()['intent_type']
         print('intent_type', intent_type)
-        print('self.intent_to_node[intent_type]', self.intent_to_node[intent_type])
         #intent_type = 'juveliry'
 
 
@@ -314,8 +301,6 @@ class Command(BaseCommand):
             bot_defaults = {'telegram_bot_id': me['id'],
                             'first_name': me['first_name'],
                             'username': me['username']}
-            print('bot_defaults', bot_defaults)
-
             #apps.get_app_config('qteam_bot').botid_to_botobj[bot_defaults['telegram_bot_id']]=self.dp.bot
 
 
@@ -340,7 +325,6 @@ class Command(BaseCommand):
             print('before params')
             params = await self.get_orgs_tree_dialog_teleg_params(root_node_id)
             print('after params')
-            print('params', params)
             await message.answer(params['text'],
                                  reply_markup=params['reply_markup'],
                                  parse_mode=params['parse_mode'])
@@ -362,7 +346,6 @@ class Command(BaseCommand):
         @self.dp.message_handler()
         async def msg_handler(message: types.Message):
             bot_user = await self.get_bot_user(message.from_user)
-            print('bot_user', bot_user)
             await database_sync_to_async(bot_user.upd_last_active)()
             await database_sync_to_async(MessageLog.objects.create)(bot_user=bot_user, text=message.text)
 
@@ -372,7 +355,6 @@ class Command(BaseCommand):
                 return
 
             if message.text == 'ау':
-                print('len_bot_list', len(apps.get_app_config('qteam_bot').botid_to_botobj))
 
                 r = requests.post('http://localhost:8001/messaging/', data={'teleg_bot_id': 1207014986,
                                                                             'text':message.text+'перенаправлено',
@@ -383,10 +365,8 @@ class Command(BaseCommand):
                 return
 
             node_id_to_show, org_list = await self.prebot(message.text)
-            print('org_list', org_list)
 
             params =await self.get_orgs_tree_dialog_teleg_params(node_id_to_show, org_list)
-            print('params',params)
             await message.answer(params['text'],
                                       reply_markup=params['reply_markup'],
                                       parse_mode=params['parse_mode'])
@@ -401,7 +381,6 @@ class Command(BaseCommand):
             print('real_data', real_data)
 
             bot_user = await self.get_bot_user(callback.from_user)
-            print('bot_user', bot_user)
             await database_sync_to_async(bot_user.upd_last_active)()
 
             if real_data['type'] == 'dialog' and real_data['dial_id'] == 'spisok':
@@ -478,7 +457,6 @@ class Command(BaseCommand):
                 print('before params')
                 params = await self.get_orgs_tree_dialog_teleg_params(root_node_id)
                 print('after params')
-                print('params', params)
                 await message.answer(params['text'],
                                      reply_markup=params['reply_markup'],
                                      parse_mode=params['parse_mode'])
