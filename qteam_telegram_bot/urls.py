@@ -20,5 +20,5 @@ from django.conf import settings
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('model/', include('qteam_bot.urls')),
+    path('messaging/', include('qteam_bot.urls')),
 ]+ static(settings.MEDIA_URL, document_root =settings.MEDIA_ROOT)

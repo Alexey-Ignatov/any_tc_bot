@@ -2,7 +2,7 @@ from django.contrib import admin
 
 # Register your models here.
 from django.contrib import admin
-from .models import BotUser, Store,StoreCategory,StartEvent, MessageLog
+from .models import BotUser, Store,StoreCategory,StartEvent, MessageLog,AcurBot
 
 import json
 
@@ -34,6 +34,12 @@ class MessageLogAdmin(admin.ModelAdmin):
 
     def view_bot(self, obj):
         return obj.bot_user.bot
+
+
+
+@admin.register(AcurBot)
+class AcurBotAdmin(admin.ModelAdmin):
+    pass
 
 """
 

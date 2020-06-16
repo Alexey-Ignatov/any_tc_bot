@@ -1,14 +1,5 @@
 from django.core.management.base import BaseCommand
-from django.conf import settings
 from telegram import Bot
-from telegram import Update
-#from telegram import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
-from telegram.ext import CallbackContext
-from telegram.ext import CommandHandler, CallbackQueryHandler, MessageHandler
-from telegram.ext import Filters
-from telegram.ext import MessageHandler
-from telegram.ext import Updater
-from telegram.utils.request import Request
 from aiogram.types import Message, CallbackQuery
 from collections import defaultdict
 import requests
@@ -17,9 +8,25 @@ import logging
 import aiogram
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types.inline_keyboard import InlineKeyboardButton, InlineKeyboardMarkup
-from aiogram.types.reply_keyboard import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from channels.db import database_sync_to_async
-from asgiref.sync import sync_to_async
+from asgiref.sync import sync_to_async, async_to_sync
+from django.apps import apps
+from telebot import types
+
+
+from qteam_bot.models import BotUser,Store, StoreCategory,StartEvent,CardShowList, MessageLog, OrgSubscription, AcurBot
+
+
+from django.utils import timezone
+
+
+import json
+import pandas as pd
+from fuzzywuzzy import fuzz
+import cyrtranslit
+MAX_CAPTION_SIZE = 1000
+
+
 
 def norm_name(name):
     name_regex = '[a-zA-Zа-яА-Я]+|\d+'
@@ -60,43 +67,6 @@ def get_best_keyword_match(msg, kw_to_id, th):
             continue
         res_list += kw_to_id[name]
     return res_list
-
-
-from telegram import (InputMediaVideo, InputMediaPhoto, InputMediaAnimation, Message, InputFile,
-                      InputMediaAudio, InputMediaDocument, PhotoSize)
-
-import telebot
-from telebot import types
-import json
-
-from qteam_bot.models import BotUser,Store, StoreCategory,StartEvent,CardShowList, MessageLog, OrgSubscription, AcurBot
-from random import shuffle
-from telegram.error import Unauthorized
-from telegram.error import BadRequest
-
-from django.utils import timezone
-import datetime
-
-
-import json
-import pandas as pd
-from deeppavlov import train_model, configs, build_model
-
-from fuzzywuzzy import fuzz
-import cyrtranslit
-MAX_CAPTION_SIZE = 1000
-
-def log_errors(f):
-    def inner(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            error_message = 'Произошла плохая ошибка: {}'.format(e)
-            print(error_message)
-            raise e
-
-    return inner
-
 
 
 
@@ -232,7 +202,6 @@ class Command(BaseCommand):
                 "reply_markup": keyboard}
 
 
-    @log_errors
     async def get_card_message_telegram_req_params(self, org, bot_user):
         text = org.get_card_text()
 
@@ -261,7 +230,7 @@ class Command(BaseCommand):
 
 
 
-    @log_errors
+
     async def org_find_name_keywords(self, query):
 
         kw_to_ind = defaultdict(list)
@@ -288,9 +257,9 @@ class Command(BaseCommand):
 
         print(brand_name_to_id)
         print(kw_to_ind)
-        return get_best_keyword_match(query, brand_name_to_id, 80)+get_best_keyword_match(query, kw_to_ind, 75)
+        return get_best_keyword_match(query, brand_name_to_id, 90)+get_best_keyword_match(query, kw_to_ind, 80)
 
-    @log_errors
+
     async def prebot(self, msg):
         print('in prebot')
         name_result_list = await self.org_find_name_keywords(msg)
@@ -320,9 +289,9 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         self.help = 'Телеграм-бот'
-        config_path = kwargs['config_path']
+        self.config_path = kwargs['config_path']
 
-        self.bot_config = json.load(open(config_path))
+        self.bot_config = json.load(open(self.config_path))
         print('bot_config readed')
 
         self.org_hier_dialog = self.bot_config['org_hier_dialog']
@@ -335,6 +304,8 @@ class Command(BaseCommand):
 
         # Initialize bot and dispatcher
         bot = Bot(token=self.TOKEN)
+        #async_to_sync(bot.send_message)(646380871,text='хули надо?')
+
         dp = Dispatcher(bot)
         self.dp=dp
 
@@ -344,6 +315,10 @@ class Command(BaseCommand):
                             'first_name': me['first_name'],
                             'username': me['username']}
             print('bot_defaults', bot_defaults)
+
+            #apps.get_app_config('qteam_bot').botid_to_botobj[bot_defaults['telegram_bot_id']]=self.dp.bot
+
+
             self.acur_bot, _ = await database_sync_to_async( AcurBot.objects.update_or_create)(
                 token=self.TOKEN, defaults=bot_defaults
             )
@@ -394,6 +369,17 @@ class Command(BaseCommand):
             if message.text == 'загрузите данные':
                 await self.load_mags()
                 await message.answer(text='Загрузили!')
+                return
+
+            if message.text == 'ау':
+                print('len_bot_list', len(apps.get_app_config('qteam_bot').botid_to_botobj))
+
+                r = requests.post('http://localhost:8001/messaging/', data={'teleg_bot_id': 1207014986,
+                                                                            'text':message.text+'перенаправлено',
+                                                                            'telegram_user_id':646380871})
+                #await apps.get_app_config('qteam_bot').botid_to_botobj[1233905933].send_message(bot_user.bot_user_id,text='хули надо?')
+
+
                 return
 
             node_id_to_show, org_list = await self.prebot(message.text)
@@ -508,7 +494,6 @@ class Command(BaseCommand):
                 await message.answer_photo(self.bot_config['welcome_photo_url'],
                                            caption=self.bot_config['welcome_text'][:MAX_CAPTION_SIZE],
                                            parse_mode="Markdown")
-
 
 
         executor.start_polling(dp, skip_updates=True, on_startup=on_start,)

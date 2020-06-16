@@ -1,26 +1,19 @@
 from django.shortcuts import render
-
-# Create your views here.
-from django.http import HttpResponse
-import datetime
-from rest_framework import authentication, permissions
-from rest_framework import routers, serializers, viewsets
-
-from django.contrib.auth.models import User, Group
-from rest_framework import viewsets
-from .serializers import UserSerializer, GroupSerializer, BotUserSerializer
-from .models import BotUser
-from rest_framework.response import Response
-from rest_framework import permissions
-from rest_framework.decorators import api_view, permission_classes
-from django.db import transaction
-from django.http import Http404
-from rest_framework.exceptions import ValidationError
-from rest_framework.generics import get_object_or_404
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
-from django.utils import timezone
-import json
-import requests
-from random import shuffle
-import time
+from rest_framework.response import Response
+from asgiref.sync import sync_to_async, async_to_sync
+# Create your views here.
+
+from django.apps import apps
+
+
+
+class SendMessageApi(APIView):
+    @staticmethod
+    def post(request):
+        text = request.data['text']
+        teleg_bot_id = str(request.data['teleg_bot_id'])
+        apps.get_app_config('qteam_bot').botid_to_botobj[teleg_bot_id].send_message(int(request.data['telegram_user_id']), text=text)
+
+        return Response({})
+
