@@ -188,7 +188,7 @@ class CardShowList(models.Model):
 
 
 
-class userToOperatorMsgList(models.Model):
+class UserToOperatorMsgList(models.Model):
     sent_time = models.DateTimeField(auto_now_add=True)
     text = models.CharField(max_length=4500)
     sender_to_bot_msg_id = models.CharField(max_length=200)
@@ -206,7 +206,7 @@ class InterBotMsg(models.Model):
     sender_bot_user = models.ForeignKey(BotUser, on_delete=models.CASCADE,related_name='inter_bot_sender_bot_user')
     receiver_bot_user = models.ForeignKey(BotUser, on_delete=models.CASCADE,related_name='inter_bot_receiver_bot_user')
 
-    user_to_operator_msg_list = models.ForeignKey(userToOperatorMsgList, null=True, blank=True, on_delete=models.DO_NOTHING)
+    user_to_operator_msg_list = models.ForeignKey(UserToOperatorMsgList, null=True, blank=True, on_delete=models.DO_NOTHING)
 
     def get_receiver_bot_user_teleg_id(self):
         return self.receiver_bot_user.bot_user_id
@@ -214,5 +214,7 @@ class InterBotMsg(models.Model):
     def get_sender_bot_user_teleg_id(self):
         return self.sender_bot_user.bot_user_id
 
+    def get_user_to_operator_msg_list(self):
+        return self.user_to_operator_msg_list
 
 

@@ -208,14 +208,17 @@ class Command(BaseCommand):
                                                                             'from_teleg_bot_id':self.acur_bot.telegram_bot_id})
 
                 finQ =~Q(receiver_bot_user=bot_user)
-                finQ &=Q(bot_to_receiver_msg_id = str(message.reply_to_message.message_id))
-                finQ &=Q(receiver_bot_user__bot =self.acur_bot)
+                finQ &= Q(user_to_operator_msg_list=await database_sync_to_async(
+                    inter_bot_msg.get_user_to_operator_msg_list)())
 
                 other_inter_bot_msg = await database_sync_to_async(InterBotMsg.objects.filter)(finQ)
                 other_inter_bot_msg = await sync_to_async(list)(other_inter_bot_msg)
-                for elem in other_inter_bot_msg:
-                    self.dp.bot.delete_message()
-                    print(elem,'other_inter_bot_msg')
+                print('other_inter_bot_msg',len(other_inter_bot_msg))
+                for msg in other_inter_bot_msg:
+                    user_id = await database_sync_to_async(msg.get_receiver_bot_user_teleg_id)()
+                    await self.dp.bot.delete_message(int(user_id),int(msg.bot_to_receiver_msg_id))
+                    await database_sync_to_async(msg.delete)()
+                    print('other_inter_bot_msg')
 
 
             if message.text == self.auth_code:
