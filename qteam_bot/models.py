@@ -11,6 +11,11 @@ from django.conf import settings
 import datetime
 from channels.db import database_sync_to_async
 
+
+
+
+
+
 class StoreCategory(models.Model):
     title = models.CharField(max_length=200)
 
@@ -141,6 +146,7 @@ class BotUser(models.Model):
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     username = models.CharField(max_length=100)
+    is_operator = models.BooleanField(default=False)
 
     last_active = models.DateTimeField()
     def upd_last_active(self):
@@ -178,3 +184,35 @@ class MessageLog(models.Model):
 
 class CardShowList(models.Model):
     card_list_json = models.CharField(max_length=800)
+
+
+
+
+class userToOperatorMsgList(models.Model):
+    sent_time = models.DateTimeField(auto_now_add=True)
+    text = models.CharField(max_length=4500)
+    sender_to_bot_msg_id = models.CharField(max_length=200)
+    sender_bot_user = models.ForeignKey(BotUser, on_delete=models.CASCADE, related_name='msg_list_sender_bot_user')
+
+
+class InterBotMsg(models.Model):
+    sent_time = models.DateTimeField(auto_now_add=True)
+    text = models.CharField(max_length=4500)
+
+    bot_to_receiver_msg_id = models.CharField(max_length=200)
+    sender_to_bot_msg_id = models.CharField(max_length=200)
+
+
+    sender_bot_user = models.ForeignKey(BotUser, on_delete=models.CASCADE,related_name='inter_bot_sender_bot_user')
+    receiver_bot_user = models.ForeignKey(BotUser, on_delete=models.CASCADE,related_name='inter_bot_receiver_bot_user')
+
+    user_to_operator_msg_list = models.ForeignKey(userToOperatorMsgList, null=True, blank=True, on_delete=models.DO_NOTHING)
+
+    def get_receiver_bot_user_teleg_id(self):
+        return self.receiver_bot_user.bot_user_id
+
+    def get_sender_bot_user_teleg_id(self):
+        return self.sender_bot_user.bot_user_id
+
+
+

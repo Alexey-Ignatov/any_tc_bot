@@ -283,7 +283,8 @@ class Command(BaseCommand):
 
         self.org_hier_dialog = self.bot_config['org_hier_dialog']
         self.intent_to_node = self.bot_config['intent_to_node']
-        self.TOKEN = self.bot_config['token']
+        self.TOKEN = self.bot_config['client_token']
+        self.admin_token = self.bot_config['admin_token']
 
 
         # Configure logging
@@ -307,6 +308,7 @@ class Command(BaseCommand):
             self.acur_bot, _ = await database_sync_to_async( AcurBot.objects.update_or_create)(
                 token=self.TOKEN, defaults=bot_defaults
             )
+
 
 
 
@@ -354,11 +356,15 @@ class Command(BaseCommand):
                 await message.answer(text='Загрузили!')
                 return
 
-            if message.text == 'ау':
+            if message.text.startswith('!'):
+                admin_acur_bot = await database_sync_to_async( AcurBot.objects.get)(token=self.admin_token)
 
-                r = requests.post('http://localhost:8001/messaging/', data={'teleg_bot_id': 1207014986,
-                                                                            'text':message.text+'перенаправлено',
-                                                                            'telegram_user_id':646380871})
+                r = requests.post('http://localhost:8001/messaging/', data={'text':message.text+' перенаправлено',
+                                                                            'sender_user_id': bot_user.bot_user_id,
+                                                                            'to_teleg_bot_id': admin_acur_bot.telegram_bot_id,
+                                                                            'user_to_bot_msg_id': message.message_id,
+                                                                            'receiver_user_id':646380871,
+                                                                            'from_teleg_bot_id':self.acur_bot.telegram_bot_id})
                 #await apps.get_app_config('qteam_bot').botid_to_botobj[1233905933].send_message(bot_user.bot_user_id,text='хули надо?')
 
 
@@ -370,8 +376,6 @@ class Command(BaseCommand):
             await message.answer(params['text'],
                                       reply_markup=params['reply_markup'],
                                       parse_mode=params['parse_mode'])
-
-
 
 
         @self.dp.callback_query_handler()
