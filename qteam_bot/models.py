@@ -148,6 +148,8 @@ class BotUser(models.Model):
     username = models.CharField(max_length=100)
     is_operator = models.BooleanField(default=False)
 
+    is_operator_dicussing = models.BooleanField(default=False)
+
     last_active = models.DateTimeField()
     def upd_last_active(self):
         self.last_active = timezone.now()

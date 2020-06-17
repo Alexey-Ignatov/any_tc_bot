@@ -128,7 +128,7 @@ class Command(BaseCommand):
             # time.sleep(2)
 
 
-    async def get_orgs_tree_dialog_teleg_params(self, node_id, orgs_add_to_show = []):
+    async def get_orgs_tree_dialog_teleg_params(self, node_id, orgs_add_to_show = [], back_btn = True):
         print('get_orgs_tree_dialog_teleg_params')
         node_info = [node for node in self.org_hier_dialog if node['node_id'] == node_id][0]
         print('node_info', node_info)
@@ -180,12 +180,13 @@ class Command(BaseCommand):
             if keyboard_line_list:
                 keyboard.row(*keyboard_line_list)
 
-            btn = InlineKeyboardButton(text='Назад',
-                                       callback_data=json.dumps(
-                                           {'node_id': node_info['back_node_id'],
-                                            'dial_id': 'spisok',
-                                            'type': 'dialog'}))
-            keyboard.row(btn)
+            if back_btn:
+                btn = InlineKeyboardButton(text='Назад',
+                                           callback_data=json.dumps(
+                                               {'node_id': node_info['back_node_id'],
+                                                'dial_id': 'spisok',
+                                                'type': 'dialog'}))
+                keyboard.row(btn)
 
         return {"text":text ,
                 "parse_mode": "Markdown",
@@ -222,7 +223,6 @@ class Command(BaseCommand):
 
 
     async def org_find_name_keywords(self, query):
-
         kw_to_ind = defaultdict(list)
         stores_list = await database_sync_to_async(Store.objects.filter)(bot = self.acur_bot)
         stores_list = await sync_to_async(list)(stores_list)
@@ -252,20 +252,21 @@ class Command(BaseCommand):
         print('in prebot')
         name_result_list = await self.org_find_name_keywords(msg)
         #name_result_list = []
-        if name_result_list:
-            stores = await database_sync_to_async(Store.objects.filter)(pk__in=name_result_list)
-            stores = await sync_to_async(list)(stores)
-            #return 'Возможно, вы имели в виду:\n' + '\n'.join(map(lambda x: x.title, stores))
-            return -1, stores
+
 
         r = requests.get(self.bot_config['model_api_url'], data={'context': msg})
         intent_type =r.json()['intent_type']
         print('intent_type', intent_type)
         #intent_type = 'juveliry'
 
+        if name_result_list:
+            stores = await database_sync_to_async(Store.objects.filter)(pk__in=name_result_list)
+            stores = await sync_to_async(list)(stores)
+            #return 'Возможно, вы имели в виду:\n' + '\n'.join(map(lambda x: x.title, stores))
+            return -1, stores, intent_type
 
         #stores = Store.objects.filter(cat=StoreCategory.objects.get(title=intent_type))
-        return self.intent_to_node[intent_type], []
+        return self.intent_to_node[intent_type], [], intent_type
 
 
 
@@ -310,6 +311,14 @@ class Command(BaseCommand):
             )
 
 
+        @self.dp.message_handler(commands=['operator'])
+        async def handle_operator(message: types.Message):
+            bot_user = await self.get_bot_user(message.from_user)
+            await database_sync_to_async(bot_user.upd_last_active)()
+
+            bot_user.is_operator_dicussing = True
+            await database_sync_to_async(bot_user.save)()
+            await message.answer('Напишите запрос оператору:')
 
 
         @self.dp.message_handler(commands=['spisok'])
@@ -330,6 +339,8 @@ class Command(BaseCommand):
             await message.answer(params['text'],
                                  reply_markup=params['reply_markup'],
                                  parse_mode=params['parse_mode'])
+
+
 
         @self.dp.message_handler(commands=['start'])
         async def handle_welcome(message: types.Message):
@@ -356,22 +367,37 @@ class Command(BaseCommand):
                 await message.answer(text='Загрузили!')
                 return
 
-            if message.text.startswith('!'):
+            if bot_user.is_operator_dicussing:
                 admin_acur_bot = await database_sync_to_async( AcurBot.objects.get)(token=self.admin_token)
 
-                r = requests.post('http://localhost:8001/messaging/msg_to_operator/', data={'text':message.text+' перенаправлено',
+                r = requests.post('http://localhost:8001/messaging/msg_to_operator/', data={'text':message.text,
                                                                             'sender_user_id': bot_user.bot_user_id,
                                                                             'to_teleg_bot_id': admin_acur_bot.telegram_bot_id,
                                                                             'user_to_bot_msg_id': message.message_id,
                                                                             'from_teleg_bot_id':self.acur_bot.telegram_bot_id})
-                #await apps.get_app_config('qteam_bot').botid_to_botobj[1233905933].send_message(bot_user.bot_user_id,text='хули надо?')
-
-
+                bot_user.is_operator_dicussing = False
+                await database_sync_to_async(bot_user.save)()
                 return
 
-            node_id_to_show, org_list = await self.prebot(message.text)
+            node_id_to_show, org_list, intent_type = await self.prebot(message.text)
+            back_btn = node_id_to_show != -1
+            params = await self.get_orgs_tree_dialog_teleg_params(node_id_to_show, org_list, back_btn=back_btn)
 
-            params =await self.get_orgs_tree_dialog_teleg_params(node_id_to_show, org_list)
+            if node_id_to_show == -1:
+                btn_prev = InlineKeyboardButton(text=intent_type,
+                                                callback_data=json.dumps(
+                                                    {'node_id': self.intent_to_node[intent_type],
+                                                     'dial_id': 'spisok',
+                                                     'type': 'dialog'
+                                                    }))
+                params['reply_markup'].row(btn_prev)
+
+            btn_prev = InlineKeyboardButton(text="Связаться с оператором",
+                                            callback_data=json.dumps({'type': 'operator'}))
+
+            params['reply_markup'].row(btn_prev)
+
+
             await message.answer(params['text'],
                                       reply_markup=params['reply_markup'],
                                       parse_mode=params['parse_mode'])
@@ -385,6 +411,12 @@ class Command(BaseCommand):
 
             bot_user = await self.get_bot_user(callback.from_user)
             await database_sync_to_async(bot_user.upd_last_active)()
+
+            if real_data['type'] == 'operator':
+                bot_user.is_operator_dicussing = True
+                await database_sync_to_async(bot_user.save)()
+                await callback.message.answer('Напишите запрос оператору:')
+                return
 
             if real_data['type'] == 'dialog' and real_data['dial_id'] == 'spisok':
                 node_id = real_data['node_id']
