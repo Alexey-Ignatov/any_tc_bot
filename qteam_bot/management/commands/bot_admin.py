@@ -205,7 +205,8 @@ class Command(BaseCommand):
                                                                             'to_teleg_bot_id': client_acur_bot.telegram_bot_id,
                                                                             'user_to_bot_msg_id': message.message_id,
                                                                             'receiver_user_id':await database_sync_to_async(inter_bot_msg.get_sender_bot_user_teleg_id)(),
-                                                                            'from_teleg_bot_id':self.acur_bot.telegram_bot_id})
+                                                                            'from_teleg_bot_id':self.acur_bot.telegram_bot_id,
+                                                                            'reply_to':inter_bot_msg.sender_to_bot_msg_id})
 
                 finQ =~Q(receiver_bot_user=bot_user)
                 finQ &= Q(user_to_operator_msg_list=await database_sync_to_async(

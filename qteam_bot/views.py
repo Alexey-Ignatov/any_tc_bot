@@ -18,9 +18,13 @@ class SendMessageApi(APIView):
         user_to_bot_msg_id = str(request.data['user_to_bot_msg_id'])
         receiver_user_id = str(request.data['receiver_user_id'])
         from_teleg_bot_id =  str(request.data['from_teleg_bot_id'])
+        reply_to = int(request.data['reply_to']) if request.data['reply_to'] else None
 
 
-        bot_to_user_msg = apps.get_app_config('qteam_bot').botid_to_botobj[to_teleg_bot_id].send_message(int(receiver_user_id), text=text)
+        bot_to_user_msg = apps.get_app_config('qteam_bot').botid_to_botobj[to_teleg_bot_id]\
+            .send_message(int(receiver_user_id), text=text, reply_to_message_id=reply_to)
+
+
         sender_bot_user = BotUser.objects.get(bot__telegram_bot_id=from_teleg_bot_id,bot_user_id=sender_user_id )
         receiver_bot_user = BotUser.objects.get(bot__telegram_bot_id=to_teleg_bot_id,bot_user_id=receiver_user_id )
         print('SendMessageApi: before send')
