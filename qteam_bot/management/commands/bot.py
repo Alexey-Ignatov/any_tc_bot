@@ -286,6 +286,7 @@ class Command(BaseCommand):
         self.intent_to_node = self.bot_config['intent_to_node']
         self.TOKEN = self.bot_config['client_token']
         self.admin_token = self.bot_config['admin_token']
+        self.intent_to_name = self.bot_config['intent_to_name']
 
 
         # Configure logging
@@ -384,7 +385,7 @@ class Command(BaseCommand):
             params = await self.get_orgs_tree_dialog_teleg_params(node_id_to_show, org_list, back_btn=back_btn)
 
             if node_id_to_show == -1:
-                btn_prev = InlineKeyboardButton(text=intent_type,
+                btn_prev = InlineKeyboardButton(text="Открыть категорию: "+self.intent_to_name[intent_type],
                                                 callback_data=json.dumps(
                                                     {'node_id': self.intent_to_node[intent_type],
                                                      'dial_id': 'spisok',
