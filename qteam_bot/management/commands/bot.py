@@ -384,7 +384,7 @@ class Command(BaseCommand):
             back_btn = node_id_to_show != -1
             params = await self.get_orgs_tree_dialog_teleg_params(node_id_to_show, org_list, back_btn=back_btn)
 
-            if node_id_to_show == -1:
+            if node_id_to_show == -1 and intent_type in self.intent_to_name:
                 btn_prev = InlineKeyboardButton(text="Открыть категорию: "+self.intent_to_name[intent_type],
                                                 callback_data=json.dumps(
                                                     {'node_id': self.intent_to_node[intent_type],
