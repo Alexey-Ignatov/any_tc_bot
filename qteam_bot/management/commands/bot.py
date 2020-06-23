@@ -14,7 +14,7 @@ from django.apps import apps
 from telebot import types
 
 
-from qteam_bot.models import BotUser,Store, StoreCategory,StartEvent,CardShowList, MessageLog, OrgSubscription, AcurBot
+    from qteam_bot.models import BotUser,Store, StoreCategory,StartEvent,CardShowList, MessageLog, OrgSubscription, AcurBot
 
 
 from django.utils import timezone
