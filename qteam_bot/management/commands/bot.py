@@ -12,8 +12,7 @@ from channels.db import database_sync_to_async
 from asgiref.sync import sync_to_async, async_to_sync
 from django.apps import apps
 from telebot import types
-
-
+from aiogram.types import ContentTypes
 from qteam_bot.models import BotUser,Store, StoreCategory,StartEvent,CardShowList, MessageLog, OrgSubscription, AcurBot
 
 
@@ -368,26 +367,6 @@ class Command(BaseCommand):
                 await message.answer(text='Загрузили!')
                 return
 
-            if message.text == 'рассылка тест 1':
-                keyboard = InlineKeyboardMarkup( )
-                keyboard.row(InlineKeyboardButton(text="Пойду!", callback_data='dd'),InlineKeyboardButton(text="Не в этот раз", callback_data='dd'))
-                text = """Добрый день, с 1 по 14 июня в ТРЦ Водный КОНКУРС ДЕТСКИХ РИСУНКОВ! \nГлавный приз — большая семейная фирменная пицца «Чемпион»\nСовместно  развлекательным центром Чемпион мы приглашаем юных художников от 5 до 12 лет принять участие в творческом конкурсе!\nПиши сюда ФИО, если будешь участвовать в конкурсе, мы тебя зарегистрируем!"""
-
-                await self.dp.bot.send_message(	897392899,text=text, reply_markup=keyboard )
-                return
-
-            if message.text == 'рассылка тест 2':
-                    keyboard = InlineKeyboardMarkup()
-                    #keyboard.row(InlineKeyboardButton(text="Пойду!", callback_data='dd'),
-                    #             InlineKeyboardButton(text="Не в этот раз.", callback_data='dd'))
-                    text = """Добрый день! \nС 25 августа по 1 сентября в магазинах одежды сезонная скидка 30%. В скидочной программа участвуют Zenden, АДАМАС, Ostin, Calzedonia, ТВОЁ. Приходи, чтобы в весёлой форме выиграть сертификат на сезонную скидку!"""
-
-
-                    await self.dp.bot.send_message(	897392899, text=text, reply_markup=keyboard)
-                    return
-
-
-                #897392899
 
             if bot_user.is_operator_dicussing:
                 admin_acur_bot = await database_sync_to_async( AcurBot.objects.get)(token=self.admin_token)
@@ -530,5 +509,13 @@ class Command(BaseCommand):
                                            caption=self.bot_config['welcome_text'][:MAX_CAPTION_SIZE],
                                            parse_mode="Markdown")
 
+
+        @self.dp.channel_post_handler(content_types=ContentTypes.ANY)
+        async def my_channel_post_handler(message: types.Message):
+            my_users = await database_sync_to_async(BotUser.objects.filter)( bot=self.acur_bot)
+            my_users = await sync_to_async(list)(my_users)
+
+            for bot_user in my_users:
+                await message.forward(bot_user.bot_user_id)
 
         executor.start_polling(dp, skip_updates=True, on_startup=on_start,)

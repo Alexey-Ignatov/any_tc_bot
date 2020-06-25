@@ -228,12 +228,11 @@ class Command(BaseCommand):
                 await message.answer('Код принят!')
 
 
+
                 #await apps.get_app_config('qteam_bot').botid_to_botobj[1233905933].send_message(bot_user.bot_user_id,text='хули надо?')
 
 
                 return
-
-
 
 
 
