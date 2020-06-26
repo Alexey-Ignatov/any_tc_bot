@@ -124,7 +124,8 @@ class Command(BaseCommand):
             #store.get_store_pic_file_id(context.bot)
 
             # context.bot.send_media_group(chat_id=update.effective_chat.id, media=[inp_photo, inp_photo2])
-            # time.sleep(2)
+            import time
+            time.sleep(.1)
 
 
     async def get_orgs_tree_dialog_teleg_params(self, node_id, orgs_add_to_show = [], back_btn = False):
