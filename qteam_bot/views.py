@@ -22,7 +22,8 @@ class SendMessageApi(APIView):
 
 
         bot_to_user_msg = apps.get_app_config('qteam_bot').botid_to_botobj[to_teleg_bot_id]\
-            .send_message(int(receiver_user_id), text=text, reply_to_message_id=reply_to)
+            .send_photo(chat_id=int(receiver_user_id),photo ='https://gallery.kissclipart.com/20180829/gaw/kissclipart-customer-support-icon-blue-clipart-customer-servic-4764cde0bb24edf6.jpg',
+                        caption=text, reply_to_message_id=reply_to)
 
 
         sender_bot_user = BotUser.objects.get(bot__telegram_bot_id=from_teleg_bot_id,bot_user_id=sender_user_id )

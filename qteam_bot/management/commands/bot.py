@@ -127,7 +127,7 @@ class Command(BaseCommand):
             # time.sleep(2)
 
 
-    async def get_orgs_tree_dialog_teleg_params(self, node_id, orgs_add_to_show = [], back_btn = True):
+    async def get_orgs_tree_dialog_teleg_params(self, node_id, orgs_add_to_show = [], back_btn = False):
         print('get_orgs_tree_dialog_teleg_params')
         node_info = [node for node in self.org_hier_dialog if node['node_id'] == node_id][0]
         print('node_info', node_info)
@@ -381,7 +381,8 @@ class Command(BaseCommand):
                 return
 
             node_id_to_show, org_list, intent_type = await self.prebot(message.text)
-            back_btn = node_id_to_show != -1
+            #back_btn = node_id_to_show != -1
+            back_btn = False
             params = await self.get_orgs_tree_dialog_teleg_params(node_id_to_show, org_list, back_btn=back_btn)
 
             if node_id_to_show == -1 and intent_type in self.intent_to_name:
