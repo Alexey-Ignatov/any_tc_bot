@@ -188,6 +188,11 @@ class Command(BaseCommand):
                                                 'type': 'dialog'}))
                 keyboard.row(btn)
 
+            btn_prev = InlineKeyboardButton(text="Связаться с оператором",
+                                            callback_data=json.dumps({'type': 'operator'}))
+
+            keyboard.row(btn_prev)
+
         return {"text":text ,
                 "parse_mode": "Markdown",
                 "reply_markup": keyboard}
@@ -394,11 +399,6 @@ class Command(BaseCommand):
                                                      'type': 'dialog'
                                                     }))
                 params['reply_markup'].row(btn_prev)
-
-            btn_prev = InlineKeyboardButton(text="Связаться с оператором",
-                                            callback_data=json.dumps({'type': 'operator'}))
-
-            params['reply_markup'].row(btn_prev)
 
 
             await message.answer(params['text'],
