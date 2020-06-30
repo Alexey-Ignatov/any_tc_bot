@@ -84,8 +84,6 @@ class Store(models.Model):
         return self.bot.token
 
     async def get_plan_pic_file_id(self, bot):
-        import time
-        time.sleep(.1)
         if not self.plan_image.url:
             return None
         print('get_plan_pic_file_id not none')

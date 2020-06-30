@@ -14,7 +14,7 @@ from django.apps import apps
 from telebot import types
 from aiogram.types import ContentTypes
 from qteam_bot.models import BotUser,Store, StoreCategory,StartEvent,CardShowList, MessageLog, OrgSubscription, AcurBot
-
+import asyncio
 
 from django.utils import timezone
 
@@ -125,6 +125,7 @@ class Command(BaseCommand):
 
             # context.bot.send_media_group(chat_id=update.effective_chat.id, media=[inp_photo, inp_photo2])
 
+            await asyncio.sleep(.5)
 
 
     async def get_orgs_tree_dialog_teleg_params(self, node_id, orgs_add_to_show = [], back_btn = False):
