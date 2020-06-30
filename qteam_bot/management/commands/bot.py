@@ -112,7 +112,7 @@ class Command(BaseCommand):
                     alter_names=row['atler_names'],
                     short_descr=row['short_descr'],
                     long_descr=row['long_descr'],
-                    floor=int(row['floor']),
+                    floor=str(row['floor']),
                     phone_number='',
                     plan_image=row['map'],
                     store_image=row['store'],
