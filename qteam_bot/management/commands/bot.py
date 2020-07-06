@@ -31,6 +31,13 @@ def norm_name(name):
     name_regex = '[a-zA-Zа-яА-Я]+|\d+'
     return regexp_tokenize((name).lower(), name_regex)
 
+def extr_nouns(expl_str):
+    r = requests.post('http://localhost:5000/model', data=json.dumps({'x':[expl_str]}),
+                      headers={"content-type":"application/json", 'accept':'application/json'})
+    synt_res = r.json()[0][0]
+    reg_nouns = [l.split('\t')[2] for l in synt_res.split('\n')[:-1] if l.split('\t')[3] in ['NOUN']]
+    return ' '.join(reg_nouns)
+
 
 def get_n_grams(name, ngram_len):
     a = norm_name(str(name).lower())
@@ -152,17 +159,18 @@ class Command(BaseCommand):
         if node_info['type'] == 'show_orgs':
             print("if node_info['type'] == 'show_orgs':")
             intent_res = await database_sync_to_async( Store.objects.filter)(cat__title__in = node_info['intents_list'], bot = self.acur_bot)
-            #print('intent_res', intent_res)
+            
             intent_res = await sync_to_async(list)(intent_res)
+            print('intent_res', intent_res)
             if node_info['l_str_bound_eq']:
                 intent_res = [org for org in intent_res if org.title>=node_info['l_str_bound_eq']]
             if node_info['r_str_bound_neq']:
                 intent_res = [org for org in intent_res if org.title<node_info['r_str_bound_neq']]
 
-            extra_list = Store.objects.filter(pk__in = node_info['extra_orgs_list'])
-            extra_list = list(extra_list)+list(orgs_add_to_show)
-
-            stores_to_show = list(set(intent_res)|set(extra_list))
+            #extra_list = Store.objects.filter(pk__in = node_info['extra_orgs_list'])
+            #extra_list = list(extra_list)+list(orgs_add_to_show)
+            #stores_to_show = orgs_add_to_show
+            stores_to_show = intent_res + orgs_add_to_show
 
             text += '\n'
             text += ('\n').join(["{}. {}".format(i+1, org.get_inlist_descr()) for i, org in enumerate(stores_to_show)])
@@ -188,10 +196,10 @@ class Command(BaseCommand):
                                                 'type': 'dialog'}))
                 keyboard.row(btn)
 
-            btn_prev = InlineKeyboardButton(text="Связаться с оператором",
-                                            callback_data=json.dumps({'type': 'operator'}))
+        btn_prev = InlineKeyboardButton(text="Связаться с оператором",
+                                        callback_data=json.dumps({'type': 'operator'}))
 
-            keyboard.row(btn_prev)
+        keyboard.row(btn_prev)
 
         return {"text":text ,
                 "parse_mode": "Markdown",
@@ -250,28 +258,47 @@ class Command(BaseCommand):
                 brand_name_to_id[kw.strip().lower()] += [store.id]
 
 
-        return get_best_keyword_match(query, brand_name_to_id, 90)+get_best_keyword_match(query, kw_to_ind, 80)
+        return get_best_keyword_match(query, brand_name_to_id, 90)+get_best_keyword_match(query, kw_to_ind, 90)
 
 
     async def prebot(self, msg):
-        print('in prebot')
         name_result_list = await self.org_find_name_keywords(msg)
+        name_result_list += await self.org_find_name_keywords(extr_nouns(msg))
         #name_result_list = []
 
 
         r = requests.get(self.bot_config['model_api_url'], data={'context': msg})
-        intent_type =r.json()['intent_type']
-        print('intent_type', intent_type)
+        predict_dict =r.json()['predict_dict']
+        
+        intent_type = pd.Series(predict_dict).sort_values().index[-1]
+        intent_list = [k for k, v in predict_dict.items() if v > .1]
+        intent_list = sorted(intent_list, key=predict_dict.__getitem__, reverse=True )
+
         #intent_type = 'juveliry'
 
         if name_result_list:
             stores = await database_sync_to_async(Store.objects.filter)(pk__in=name_result_list)
             stores = await sync_to_async(list)(stores)
-            #return 'Возможно, вы имели в виду:\n' + '\n'.join(map(lambda x: x.title, stores))
-            return -1, stores, intent_type
 
-        #stores = Store.objects.filter(cat=StoreCategory.objects.get(title=intent_type))
-        return self.intent_to_node[intent_type], [], intent_type
+        else:
+            stores = await database_sync_to_async(Store.objects.filter)(cat__title__in=intent_list,
+                                                                        bot=self.acur_bot)
+            stores = await sync_to_async(list)(stores)
+
+        print('stores', stores)
+        used_intents = []
+        ind_relevance = {}
+        for i, store in enumerate(stores):
+            intent = await database_sync_to_async(store.get_intent_name)()
+            ind_relevance[i] = predict_dict[intent] if intent in predict_dict else 0.
+            used_intents.append(intent)
+        intent_list = [intent for intent in intent_list if intent in used_intents]
+
+        stores_inds_order = sorted(list(range(len(stores))), key=ind_relevance.__getitem__, reverse=True)
+        stores = [stores[ind] for ind in stores_inds_order][:50]
+        if not stores:
+            return -2, [], ['ukn']
+        return -1, stores, intent_list
 
 
 
@@ -386,19 +413,24 @@ class Command(BaseCommand):
                 await database_sync_to_async(bot_user.save)()
                 return
 
-            node_id_to_show, org_list, intent_type = await self.prebot(message.text)
+            node_id_to_show, org_list, intent_list = await self.prebot(message.text)
+            if intent_list and intent_list[0] == 'ukn':
+                node_id_to_show, org_list, intent_list = -3,[],[]
             #back_btn = node_id_to_show != -1
             back_btn = False
             params = await self.get_orgs_tree_dialog_teleg_params(node_id_to_show, org_list, back_btn=back_btn)
 
-            if node_id_to_show == -1 and intent_type in self.intent_to_name:
-                btn_prev = InlineKeyboardButton(text="Открыть категорию: "+self.intent_to_name[intent_type],
-                                                callback_data=json.dumps(
-                                                    {'node_id': self.intent_to_node[intent_type],
-                                                     'dial_id': 'spisok',
-                                                     'type': 'dialog'
-                                                    }))
-                params['reply_markup'].row(btn_prev)
+            if node_id_to_show == -1:
+                for intent_type in intent_list:
+                    if intent_type not in self.intent_to_name:
+                        continue
+                    btn_prev = InlineKeyboardButton(text="Открыть категорию: "+self.intent_to_name[intent_type],
+                                                    callback_data=json.dumps(
+                                                        {'node_id': self.intent_to_node[intent_type],
+                                                         'dial_id': 'spisok',
+                                                         'type': 'dialog'
+                                                        }))
+                    params['reply_markup'].row(btn_prev)
 
 
             await message.answer(params['text'],

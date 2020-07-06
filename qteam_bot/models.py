@@ -82,6 +82,9 @@ class Store(models.Model):
 
     def get_token(self):
         return self.bot.token
+    
+    def get_intent_name(self):
+        return self.cat.title
 
     async def get_plan_pic_file_id(self, bot):
         if not self.plan_image.url:
