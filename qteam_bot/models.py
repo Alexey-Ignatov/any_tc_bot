@@ -223,3 +223,5 @@ class InterBotMsg(models.Model):
         return self.user_to_operator_msg_list
 
 
+class SavedAnswer(models.Model):
+    json_data = models.CharField(max_length=2000)

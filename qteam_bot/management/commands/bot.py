@@ -13,7 +13,8 @@ from asgiref.sync import sync_to_async, async_to_sync
 from django.apps import apps
 from telebot import types
 from aiogram.types import ContentTypes
-from qteam_bot.models import BotUser,Store, StoreCategory,StartEvent,CardShowList, MessageLog, OrgSubscription, AcurBot
+from qteam_bot.models import BotUser,Store, StoreCategory,StartEvent,CardShowList,\
+    MessageLog, OrgSubscription, AcurBot,SavedAnswer
 import asyncio
 
 from django.utils import timezone
@@ -150,7 +151,6 @@ class Command(BaseCommand):
                 btn_prev = InlineKeyboardButton(text=btn['text'],
                                                 callback_data=json.dumps(
                                                     {'node_id': btn['dest'],
-                                                     'dial_id': 'spisok',
                                                      'type': 'dialog'
                                                     }))
                 #keyboard.append([btn_prev])
@@ -192,7 +192,6 @@ class Command(BaseCommand):
                 btn = InlineKeyboardButton(text='Назад',
                                            callback_data=json.dumps(
                                                {'node_id': node_info['back_node_id'],
-                                                'dial_id': 'spisok',
                                                 'type': 'dialog'}))
                 keyboard.row(btn)
 
@@ -261,18 +260,20 @@ class Command(BaseCommand):
         return get_best_keyword_match(query, brand_name_to_id, 90)+get_best_keyword_match(query, kw_to_ind, 90)
 
 
+
     async def prebot(self, msg):
+
         name_result_list = await self.org_find_name_keywords(msg)
         name_result_list += await self.org_find_name_keywords(extr_nouns(msg))
         #name_result_list = []
 
 
         r = requests.get(self.bot_config['model_api_url'], data={'context': msg})
-        predict_dict =r.json()['predict_dict']
+        intent_list =r.json()['intent_list']
         
-        intent_type = pd.Series(predict_dict).sort_values().index[-1]
-        intent_list = [k for k, v in predict_dict.items() if v > .1]
-        intent_list = sorted(intent_list, key=predict_dict.__getitem__, reverse=True )
+        #intent_type = pd.Series(predict_dict).sort_values().index[-1]
+        #intent_list = [k for k, v in predict_dict.items() if v > .1]
+        #intent_list = sorted(intent_list, key=predict_dict.__getitem__, reverse=True )
 
         #intent_type = 'juveliry'
 
@@ -290,7 +291,7 @@ class Command(BaseCommand):
         ind_relevance = {}
         for i, store in enumerate(stores):
             intent = await database_sync_to_async(store.get_intent_name)()
-            ind_relevance[i] = predict_dict[intent] if intent in predict_dict else 0.
+            ind_relevance[i] = -intent_list.index(intent)  if intent in intent_list else -100
             used_intents.append(intent)
         intent_list = [intent for intent in intent_list if intent in used_intents]
 
@@ -419,6 +420,11 @@ class Command(BaseCommand):
             #back_btn = node_id_to_show != -1
             back_btn = False
             params = await self.get_orgs_tree_dialog_teleg_params(node_id_to_show, org_list, back_btn=back_btn)
+            
+            ans_dict = {'node_id_to_show':node_id_to_show,
+                        'org_list':[org.id for org in org_list],
+                        'intent_list':intent_list}
+            saved_answer  = await database_sync_to_async( SavedAnswer.objects.create)(json_data=json.dumps(ans_dict))
 
             if node_id_to_show == -1:
                 for intent_type in intent_list:
@@ -427,8 +433,8 @@ class Command(BaseCommand):
                     btn_prev = InlineKeyboardButton(text="Открыть категорию: "+self.intent_to_name[intent_type],
                                                     callback_data=json.dumps(
                                                         {'node_id': self.intent_to_node[intent_type],
-                                                         'dial_id': 'spisok',
-                                                         'type': 'dialog'
+                                                         'type': 'dialog',
+                                                         'saved_id':saved_answer.id,
                                                         }))
                     params['reply_markup'].row(btn_prev)
 
@@ -453,11 +459,20 @@ class Command(BaseCommand):
                 await callback.message.answer('Напишите запрос оператору:')
                 return
 
-            if real_data['type'] == 'dialog' and real_data['dial_id'] == 'spisok':
+            if real_data['type'] == 'dialog':
                 node_id = real_data['node_id']
                 print('dest_node_id_from_btn_handler')
                 params =await self.get_orgs_tree_dialog_teleg_params(node_id)
                 print('after get_orgs_tree_dialog_teleg_params')
+                
+                if 'saved_id' in real_data:
+                    
+                    back_btn = InlineKeyboardButton(text="Назад",
+                                                    callback_data=json.dumps({'type': 'savedans',
+                                                                              'saved_id':real_data['saved_id']}))
+
+                    params['reply_markup'].row(back_btn)
+                    
                 await callback.message.edit_text(params['text'],
                                         reply_markup=params['reply_markup'],
                                         parse_mode=params['parse_mode'])
@@ -511,6 +526,30 @@ class Command(BaseCommand):
                 await callback.message.edit_caption(params['text'][:MAX_CAPTION_SIZE],
                                            reply_markup=params['reply_markup'],
                                            parse_mode=params['parse_mode'])
+
+            if real_data['type'] == 'savedans' and 'saved_id' in real_data:
+                saved_ans = await database_sync_to_async(SavedAnswer.objects.get)(pk=real_data['saved_id'])
+                saved_dict = json.loads(saved_ans.json_data)
+
+                intent_res = await database_sync_to_async(Store.objects.filter)(
+                    cat__title__in=node_info['intents_list'], bot=self.acur_bot)
+
+                intent_res = await sync_to_async(list)(intent_res)
+
+                params = await self.get_orgs_tree_dialog_teleg_params(node_id)
+                print('after get_orgs_tree_dialog_teleg_params')
+
+                if 'saved_id' in real_data:
+                    back_btn = InlineKeyboardButton(text="Назад",
+                                                    callback_data=json.dumps({'type': 'savedans',
+                                                                              'saved_id': real_data['saved_id']}))
+
+                    params['reply_markup'].row(back_btn)
+
+                await callback.message.edit_text(params['text'],
+                                                 reply_markup=params['reply_markup'],
+                                                 parse_mode=params['parse_mode'])
+
 
             @self.dp.message_handler(commands=['spisok'])
             async def handle_spisok(message: types.Message):
