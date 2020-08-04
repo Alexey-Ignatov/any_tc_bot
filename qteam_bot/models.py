@@ -58,6 +58,7 @@ class Store(models.Model):
     store_pic_file_json = models.CharField(max_length=100000, default=json.dumps({}))
 
     is_availible_for_subscription = models.BooleanField(default=True)
+    pic_urls = models.CharField(max_length=4000, default=json.dumps([]))
 
 
     def get_card_text(self):

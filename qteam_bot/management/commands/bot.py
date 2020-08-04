@@ -8,6 +8,7 @@ import logging
 import aiogram
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types.inline_keyboard import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types.input_media import InputMediaPhoto
 from channels.db import database_sync_to_async
 from asgiref.sync import sync_to_async, async_to_sync
 from django.apps import apps
@@ -121,7 +122,8 @@ class Command(BaseCommand):
                     short_descr=row['short_descr'],
                     long_descr=row['long_descr'],
                     floor=str(row['floor']),
-                    phone_number='',
+                    phone_number='',#row['phone'] if str(row['phone']) != 'nan' else '',
+                    pic_urls=row['photos'] if str(row['photos']) != 'nan' else json.dumps([]),
                     plan_image=row['map'],
                     store_image=row['store'],
                     bot=self.acur_bot,
@@ -208,28 +210,28 @@ class Command(BaseCommand):
     async def get_card_message_telegram_req_params(self, org, bot_user):
         text = org.get_card_text()
 
-        keyboard = []
         keyboard = InlineKeyboardMarkup()
+        return {"text": text,
+                "parse_mode": "Markdown",
+                "reply_markup": keyboard}
+
+        """
         if not org.is_availible_for_subscription:
             return {"text": text,
                     "parse_mode": "Markdown",
                     "reply_markup": InlineKeyboardMarkup(keyboard)}
 
         print('before subscr get')
+        
         subscription = await database_sync_to_async(OrgSubscription.objects.filter)(bot_user=bot_user, org=org)
         subscription = await sync_to_async(list)(subscription)
-
-
         if not subscription:
             subscribe_btn = InlineKeyboardButton(text="Подписаться", callback_data=json.dumps({'org_id': org.id, 'type': 'subscr'}))
         else:
             subscribe_btn = InlineKeyboardButton(text="Отписаться",
                                                  callback_data=json.dumps({'org_id': org.id, 'type': 'unsubscr'}))
         keyboard.row(subscribe_btn)
-
-        return {"text": text,
-                "parse_mode": "Markdown",
-                "reply_markup": keyboard}
+        """
 
 
 
@@ -384,6 +386,7 @@ class Command(BaseCommand):
 
             await database_sync_to_async(StartEvent.objects.create)(bot_user=bot_user)
 
+
             await message.answer_photo(self.bot_config['welcome_photo_url'],
                                        caption=self.bot_config['welcome_text'][:MAX_CAPTION_SIZE],
                                        parse_mode="Markdown")
@@ -464,15 +467,7 @@ class Command(BaseCommand):
                 print('dest_node_id_from_btn_handler')
                 params =await self.get_orgs_tree_dialog_teleg_params(node_id)
                 print('after get_orgs_tree_dialog_teleg_params')
-                
-                if 'saved_id' in real_data:
-                    
-                    back_btn = InlineKeyboardButton(text="Назад",
-                                                    callback_data=json.dumps({'type': 'savedans',
-                                                                              'saved_id':real_data['saved_id']}))
 
-                    params['reply_markup'].row(back_btn)
-                    
                 await callback.message.edit_text(params['text'],
                                         reply_markup=params['reply_markup'],
                                         parse_mode=params['parse_mode'])
@@ -489,66 +484,20 @@ class Command(BaseCommand):
                     photo_id = await org.get_plan_pic_file_id(self.dp.bot)
 
                     params = await self.get_card_message_telegram_req_params(org, bot_user)
-                    await callback.message.answer_photo(
-                                           photo=photo_id,
-                                           caption=params['text'][:MAX_CAPTION_SIZE],
-                                           parse_mode=params['parse_mode'],
-                                           reply_markup=params['reply_markup'])
+                    #await callback.message.answer_photo(
+                    #                       photo=photo_id,
+                    #                       caption=params['text'][:MAX_CAPTION_SIZE],
+                    #                       parse_mode=params['parse_mode'],
+                    #                       reply_markup=params['reply_markup'])
+                    media = [InputMediaPhoto(media=photo_id,
+                                             caption=params['text'][:MAX_CAPTION_SIZE],
+                                             parse_mode=params['parse_mode'],)]
+                    for photo_id in json.loads(org.pic_urls)[:6]:
+                        media.append(InputMediaPhoto(photo_id))
+                    # await bot.send_media_group(message.from_user.id, media)
+                    await callback.message.answer_media_group(media)
 
 
-
-            if real_data['type'] == 'subscr' and 'org_id' in real_data:
-                try:
-                    org = await database_sync_to_async(Store.objects.get)(pk=real_data['org_id'], bot=self.acur_bot)
-                except Store.DoesNotExist:
-                    return
-
-                await database_sync_to_async(OrgSubscription.objects.create)(bot_user=bot_user, org=org)
-                await callback.answer(show_alert=False, text="Вы успешно подписаны!")
-                print('after create')
-                params = await self.get_card_message_telegram_req_params(org, bot_user)
-                print('after get_card_message_telegram_req_params')
-                await callback.message.edit_caption(params['text'][:MAX_CAPTION_SIZE],
-                                           reply_markup=params['reply_markup'],
-                                           parse_mode=params['parse_mode'])
-
-            if real_data['type'] == 'unsubscr' and 'org_id' in real_data:
-                try:
-                    org = await database_sync_to_async(Store.objects.get)(pk=real_data['org_id'], bot=self.acur_bot)
-                except Store.DoesNotExist:
-                    return
-                print('unsubscr')
-                subs_list = await database_sync_to_async(OrgSubscription.objects.filter)(bot_user=bot_user, org=org)
-                await database_sync_to_async(subs_list.delete)()
-
-                await callback.answer(show_alert=False, text="Вы успешно отписаны!")
-                params = await self.get_card_message_telegram_req_params(org, bot_user)
-                await callback.message.edit_caption(params['text'][:MAX_CAPTION_SIZE],
-                                           reply_markup=params['reply_markup'],
-                                           parse_mode=params['parse_mode'])
-
-            if real_data['type'] == 'savedans' and 'saved_id' in real_data:
-                saved_ans = await database_sync_to_async(SavedAnswer.objects.get)(pk=real_data['saved_id'])
-                saved_dict = json.loads(saved_ans.json_data)
-
-                intent_res = await database_sync_to_async(Store.objects.filter)(
-                    cat__title__in=node_info['intents_list'], bot=self.acur_bot)
-
-                intent_res = await sync_to_async(list)(intent_res)
-
-                params = await self.get_orgs_tree_dialog_teleg_params(node_id)
-                print('after get_orgs_tree_dialog_teleg_params')
-
-                if 'saved_id' in real_data:
-                    back_btn = InlineKeyboardButton(text="Назад",
-                                                    callback_data=json.dumps({'type': 'savedans',
-                                                                              'saved_id': real_data['saved_id']}))
-
-                    params['reply_markup'].row(back_btn)
-
-                await callback.message.edit_text(params['text'],
-                                                 reply_markup=params['reply_markup'],
-                                                 parse_mode=params['parse_mode'])
 
 
             @self.dp.message_handler(commands=['spisok'])
