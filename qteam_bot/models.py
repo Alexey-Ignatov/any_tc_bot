@@ -61,6 +61,8 @@ class Store(models.Model):
     pic_urls = models.CharField(max_length=4000, default=json.dumps([]))
     is_top = models.BooleanField(default=False)
 
+    be_in_link = models.CharField(max_length=1000, default='no_link')
+
 
     def get_card_text(self):
         res_text = "*{}*".format(self.title)
@@ -74,8 +76,8 @@ class Store(models.Model):
             res_text += "\n{}".format(self.long_descr)
         return res_text
 
-    def get_inlist_descr(self):
-        res_text = "*{}*".format(self.title)
+    def get_inlist_descr(self, name_post_extra=''):
+        res_text = "*{}{}*".format(self.title,name_post_extra)
         if not self.is_active:
             res_text += " (временно закрыт)"
         if self.short_descr:
@@ -227,3 +229,6 @@ class InterBotMsg(models.Model):
 
 class SavedAnswer(models.Model):
     json_data = models.CharField(max_length=2000)
+
+class PictureList(models.Model):
+    json_data = models.CharField(max_length=4000)

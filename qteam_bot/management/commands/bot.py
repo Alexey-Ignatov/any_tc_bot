@@ -15,8 +15,9 @@ from django.apps import apps
 from telebot import types
 from aiogram.types import ContentTypes
 from qteam_bot.models import BotUser,Store, StoreCategory,StartEvent,CardShowList,\
-    MessageLog, OrgSubscription, AcurBot,SavedAnswer
+    MessageLog, OrgSubscription, AcurBot,SavedAnswer,PictureList
 import asyncio
+import numpy as np
 
 from django.utils import timezone
 
@@ -26,6 +27,8 @@ import pandas as pd
 from fuzzywuzzy import fuzz
 import cyrtranslit
 MAX_CAPTION_SIZE = 1000
+
+
 
 
 
@@ -129,6 +132,7 @@ class Command(BaseCommand):
                     bot=self.acur_bot,
                     is_availible_for_subscription=is_avail_for_subscr,
                     cat=store_cat,
+                    be_in_link = row['be_in_link'],
                     is_top = row['top']=='top')
 
             await store.get_plan_pic_file_id(self.dp.bot)
@@ -138,8 +142,51 @@ class Command(BaseCommand):
 
             await asyncio.sleep(.5)
 
+    async def fing_prod_props(self,msg):
+        prod_type_to_ind = {kw: [i] for i, kw in enumerate(self.wear_kws)}
+        ind_to_prod_type = {i: kw for i, kw in enumerate(self.wear_kws)}
+        prod_type_inds = get_best_keyword_match(msg, prod_type_to_ind, 90)
+        if not prod_type_inds:
+            prod_type_inds = get_best_keyword_match(extr_nouns(msg), prod_type_to_ind, 90)
 
-    async def get_orgs_tree_dialog_teleg_params(self, node_id, orgs_add_to_show = [], back_btn = False):
+        if not prod_type_inds:
+            return [], {}
+        prod_type = ind_to_prod_type[prod_type_inds[0]]
+
+        cur_prod_df = self.prods_df[(self.prods_df.name.str.lower().str.contains(prod_type))]
+        be_in_url_to_inds = cur_prod_df.groupby('store_url').groups
+        be_in_url_and_prods = []
+        be_in_url_and_props = []
+        for url in cur_prod_df.store_url.value_counts().index:
+            ind_list = be_in_url_to_inds[url]
+            be_in_url_and_prods += [(url, cur_prod_df.loc[ind_list, :].reset_index() \
+                [['name', 'picture', 'price']].T.to_dict().values())]
+
+            cur_props = {}
+            cur_props['mean_price'] = np.mean([prod['price'] for prod in be_in_url_and_prods[-1][1]])
+            cur_props['example_pics'] = sorted([prod['picture'] for prod in be_in_url_and_prods[-1][1]])[:9]
+            be_in_url_and_props.append((url, cur_props))
+
+        store_id_to_props = {}
+        res_stores = []
+        for be_in_link, props in be_in_url_and_props:
+            stores = await database_sync_to_async(Store.objects.filter)(be_in_link=be_in_link,
+                                                                        bot=self.acur_bot)
+            stores = await sync_to_async(list)(stores)
+            if not stores:
+                continue
+            res_stores.append(stores[0])
+            store_id_to_props[stores[0].id] = props
+
+        return res_stores, store_id_to_props
+
+
+    async def get_orgs_tree_dialog_teleg_params(self,
+                                                node_id,
+                                                orgs_add_to_show = [],
+                                                back_btn = False,
+                                                org_id_to_text = {},
+                                                org_id_to_pic_list = {} ):
         print('get_orgs_tree_dialog_teleg_params')
         node_info = [node for node in self.org_hier_dialog if node['node_id'] == node_id][0]
         print('node_info', node_info)
@@ -175,15 +222,23 @@ class Command(BaseCommand):
             #stores_to_show = orgs_add_to_show
             stores_to_show = intent_res + orgs_add_to_show
 
+            lines_list = []
+            for i, org in enumerate(stores_to_show):
+                cur_title = org.get_inlist_descr()
+                if org.id in org_id_to_text:
+                    cur_title = org_id_to_text[org.id]
+                lines_list+=["{}. {}".format(i+1,cur_title)]
             text += '\n'
-            text += ('\n').join(["{}. {}".format(i+1, org.get_inlist_descr()) for i, org in enumerate(stores_to_show)])
+            text += ('\n').join(lines_list)
 
             keyboard_line_list = []
             for i, org in enumerate(stores_to_show):
+
+                callback_dict = {'type': 'show_org',
+                                 'org_id': org.id,
+                                 'plist': org_id_to_pic_list[org.id] if org.id in org_id_to_pic_list else ''}
                 btn = InlineKeyboardButton(text=str(i+1),
-                                                callback_data=json.dumps(
-                                                    {'type': 'show_org',
-                                                     'org_id': org.id}))
+                                                callback_data=json.dumps(callback_dict))
                 keyboard_line_list.append(btn)
                 if i % 3 == 3 - 1:
                     keyboard.row(*keyboard_line_list)
@@ -340,6 +395,7 @@ class Command(BaseCommand):
         self.dp=dp
 
         async def on_start(dp: aiogram.Dispatcher):
+            import pickle
             me = await self.dp.bot.get_me()
             bot_defaults = {'telegram_bot_id': me['id'],
                             'first_name': me['first_name'],
@@ -350,6 +406,8 @@ class Command(BaseCommand):
             self.acur_bot, _ = await database_sync_to_async( AcurBot.objects.update_or_create)(
                 token=self.TOKEN, defaults=bot_defaults
             )
+            self.prods_df = pd.read_pickle('prods_df.pickle')
+            self.wear_kws = pickle.load( open('wear_kws.pickle', 'rb'))
 
 
         @self.dp.message_handler(commands=['operator'])
@@ -422,12 +480,32 @@ class Command(BaseCommand):
                 await database_sync_to_async(bot_user.save)()
                 return
 
-            node_id_to_show, org_list, intent_list = await self.prebot(message.text)
+            intent_list = []
+            node_id_to_show = -1
+            org_list, org_id_to_props =await self.fing_prod_props(message.text)
+            org_id_to_text = {}
+            org_id_to_pic_list = {}
+
+            for org in org_list:
+                org_id_to_text[org.id] = org.get_inlist_descr("(~{} руб.)".format(int(org_id_to_props[org.id]['mean_price'])))
+                pic_list = org_id_to_props[org.id]['example_pics']
+                plit = await database_sync_to_async(PictureList.objects.create)(json_data=json.dumps(pic_list))
+                org_id_to_pic_list[org.id] = plit.id
+
+            print(org_id_to_props)
+            if not org_list:
+                node_id_to_show, org_list, intent_list = await self.prebot(message.text)
+                org_id_to_text = {}
+                org_id_to_pic_list = {}
             #if intent_list and intent_list[0] == 'ukn':
             #    node_id_to_show, org_list, intent_list = -3,[],[]
             #back_btn = node_id_to_show != -1
             back_btn = False
-            params = await self.get_orgs_tree_dialog_teleg_params(node_id_to_show, org_list, back_btn=back_btn)
+            params = await self.get_orgs_tree_dialog_teleg_params(node_id_to_show,
+                                                                  org_list,
+                                                                  back_btn=back_btn,
+                                                                  org_id_to_text=org_id_to_text,
+                                                                  org_id_to_pic_list=org_id_to_pic_list)
             
             ans_dict = {'node_id_to_show':node_id_to_show,
                         'org_list':[org.id for org in org_list],
@@ -497,8 +575,15 @@ class Command(BaseCommand):
                     media = [InputMediaPhoto(media=photo_id,
                                              caption=params['text'][:MAX_CAPTION_SIZE],
                                              parse_mode=params['parse_mode'],)]
-                    for photo_id in json.loads(org.pic_urls)[:6]:
-                        media.append(InputMediaPhoto(photo_id))
+
+                    if not real_data['plist']:
+                        for photo_id in json.loads(org.pic_urls)[:8]:
+                            media.append(InputMediaPhoto(photo_id))
+                    else:
+                        plist = await database_sync_to_async(PictureList.objects.get)(pk=real_data['plist'])
+                        for photo_id in json.loads(plist.json_data)[:8]:
+                            media.append(InputMediaPhoto(photo_id))
+                    
                     # await bot.send_media_group(message.from_user.id, media)
                     await callback.message.answer_media_group(media)
 
