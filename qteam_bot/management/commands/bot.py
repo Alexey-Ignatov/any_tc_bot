@@ -128,7 +128,8 @@ class Command(BaseCommand):
                     store_image=row['store'],
                     bot=self.acur_bot,
                     is_availible_for_subscription=is_avail_for_subscr,
-                    cat=store_cat)
+                    cat=store_cat,
+                    is_top = row['top']=='top')
 
             await store.get_plan_pic_file_id(self.dp.bot)
             #store.get_store_pic_file_id(context.bot)
@@ -290,15 +291,19 @@ class Command(BaseCommand):
 
         print('stores', stores)
         used_intents = []
+        top_num = 0
         ind_relevance = {}
         for i, store in enumerate(stores):
             intent = await database_sync_to_async(store.get_intent_name)()
             ind_relevance[i] = -intent_list.index(intent)  if intent in intent_list else -100
-            used_intents.append(intent)
-        intent_list = [intent for intent in intent_list if intent in used_intents]
+            if store.is_top:
+                ind_relevance[i]+=50
+                top_num+=1
+            #used_intents.append(intent)
+        #intent_list = [intent for intent in intent_list if intent in used_intents]
 
         stores_inds_order = sorted(list(range(len(stores))), key=ind_relevance.__getitem__, reverse=True)
-        stores = [stores[ind] for ind in stores_inds_order][:50]
+        stores = [stores[ind] for ind in stores_inds_order][:max(15, top_num)]
         if not stores:
             return -2, [], ['ukn']
         return -1, stores, intent_list
@@ -433,7 +438,7 @@ class Command(BaseCommand):
                 for intent_type in intent_list:
                     if intent_type not in self.intent_to_name:
                         continue
-                    btn_prev = InlineKeyboardButton(text="Открыть категорию: "+self.intent_to_name[intent_type],
+                    btn_prev = InlineKeyboardButton(text="Все магазины категории: "+self.intent_to_name[intent_type],
                                                     callback_data=json.dumps(
                                                         {'node_id': self.intent_to_node[intent_type],
                                                          'type': 'dialog',

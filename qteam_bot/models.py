@@ -59,6 +59,7 @@ class Store(models.Model):
 
     is_availible_for_subscription = models.BooleanField(default=True)
     pic_urls = models.CharField(max_length=4000, default=json.dumps([]))
+    is_top = models.BooleanField(default=False)
 
 
     def get_card_text(self):
