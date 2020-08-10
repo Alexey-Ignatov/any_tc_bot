@@ -438,7 +438,7 @@ class Command(BaseCommand):
                 for intent_type in intent_list:
                     if intent_type not in self.intent_to_name:
                         continue
-                    btn_prev = InlineKeyboardButton(text="Все магазины категории: "+self.intent_to_name[intent_type],
+                    btn_prev = InlineKeyboardButton(text="Все из категории "+self.intent_to_name[intent_type],
                                                     callback_data=json.dumps(
                                                         {'node_id': self.intent_to_node[intent_type],
                                                          'type': 'dialog',
