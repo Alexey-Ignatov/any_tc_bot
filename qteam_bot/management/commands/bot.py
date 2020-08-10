@@ -104,18 +104,18 @@ class Command(BaseCommand):
     async def load_mags(self):
         import time
 
-        print('before_pickle')
+        #print('before_pickle')
         df = pd.read_pickle(self.bot_config['load_data_pickle_path'])
-        print('after pickle')
+        #print('after pickle')
         for ind, row in df.iterrows():
-            print(ind)
+            #print(ind)
             try:
                 store_cat = await database_sync_to_async(StoreCategory.objects.get)(title=row['intent'])
             except StoreCategory.DoesNotExist:
                 store_cat = await database_sync_to_async(StoreCategory.objects.create)(title=row['intent'])
 
             is_avail_for_subscr = not row['intent'] in ['wc', 'bankomat']
-            print('after store_cat')
+            #print('after store_cat')
             store = await database_sync_to_async(Store.objects.create)(
                     is_active=row['is_active'],
                     title=row['long_name'],
@@ -187,9 +187,9 @@ class Command(BaseCommand):
                                                 back_btn = False,
                                                 org_id_to_text = {},
                                                 org_id_to_pic_list = {} ):
-        print('get_orgs_tree_dialog_teleg_params')
+        #print('get_orgs_tree_dialog_teleg_params')
         node_info = [node for node in self.org_hier_dialog if node['node_id'] == node_id][0]
-        print('node_info', node_info)
+        #print('node_info', node_info)
         text = node_info['text']
 
 
@@ -207,11 +207,11 @@ class Command(BaseCommand):
                 keyboard.add(btn_prev)
 
         if node_info['type'] == 'show_orgs':
-            print("if node_info['type'] == 'show_orgs':")
+            #print("if node_info['type'] == 'show_orgs':")
             intent_res = await database_sync_to_async( Store.objects.filter)(cat__title__in = node_info['intents_list'], bot = self.acur_bot)
             
             intent_res = await sync_to_async(list)(intent_res)
-            print('intent_res', intent_res)
+            #print('intent_res', intent_res)
             if node_info['l_str_bound_eq']:
                 intent_res = [org for org in intent_res if org.title>=node_info['l_str_bound_eq']]
             if node_info['r_str_bound_neq']:
@@ -277,7 +277,7 @@ class Command(BaseCommand):
                     "parse_mode": "Markdown",
                     "reply_markup": InlineKeyboardMarkup(keyboard)}
 
-        print('before subscr get')
+        #print('before subscr get')
         
         subscription = await database_sync_to_async(OrgSubscription.objects.filter)(bot_user=bot_user, org=org)
         subscription = await sync_to_async(list)(subscription)
@@ -344,7 +344,7 @@ class Command(BaseCommand):
                                                                         bot=self.acur_bot)
             stores = await sync_to_async(list)(stores)
 
-        print('stores', stores)
+        #print('stores', stores)
         used_intents = []
         top_num = 0
         ind_relevance = {}
@@ -375,7 +375,7 @@ class Command(BaseCommand):
         self.config_path = kwargs['config_path']
 
         self.bot_config = json.load(open(self.config_path))
-        print('bot_config readed')
+        #print('bot_config readed')
 
         self.org_hier_dialog = self.bot_config['org_hier_dialog']
         self.intent_to_node = self.bot_config['intent_to_node']
@@ -423,18 +423,18 @@ class Command(BaseCommand):
         @self.dp.message_handler(commands=['spisok'])
         async def handle_spisok(message: types.Message):
 
-            print('handle spisok')
+            #print('handle spisok')
 
             bot_user = await self.get_bot_user(message.from_user)
             await database_sync_to_async(bot_user.upd_last_active)()
 
-            print('before json.load')
+            #print('before json.load')
 
             text = "Это начала диалога  про список магазинов"
             root_node_id = 0
-            print('before params')
+            #print('before params')
             params = await self.get_orgs_tree_dialog_teleg_params(root_node_id)
-            print('after params')
+            #print('after params')
             await message.answer(params['text'],
                                  reply_markup=params['reply_markup'],
                                  parse_mode=params['parse_mode'])
@@ -492,7 +492,7 @@ class Command(BaseCommand):
                 plit = await database_sync_to_async(PictureList.objects.create)(json_data=json.dumps(pic_list))
                 org_id_to_pic_list[org.id] = plit.id
 
-            print(org_id_to_props)
+            #print(org_id_to_props)
             if not org_list:
                 node_id_to_show, org_list, intent_list = await self.prebot(message.text)
                 org_id_to_text = {}
@@ -534,7 +534,7 @@ class Command(BaseCommand):
         async def keyboard_callback_handler(callback: CallbackQuery):
             data = callback.data
             real_data = json.loads(data)
-            print('real_data', real_data)
+            #print('real_data', real_data)
 
             bot_user = await self.get_bot_user(callback.from_user)
             await database_sync_to_async(bot_user.upd_last_active)()
@@ -547,9 +547,9 @@ class Command(BaseCommand):
 
             if real_data['type'] == 'dialog':
                 node_id = real_data['node_id']
-                print('dest_node_id_from_btn_handler')
+                #print('dest_node_id_from_btn_handler')
                 params =await self.get_orgs_tree_dialog_teleg_params(node_id)
-                print('after get_orgs_tree_dialog_teleg_params')
+                #print('after get_orgs_tree_dialog_teleg_params')
 
                 await callback.message.edit_text(params['text'],
                                         reply_markup=params['reply_markup'],
@@ -593,18 +593,17 @@ class Command(BaseCommand):
             @self.dp.message_handler(commands=['spisok'])
             async def handle_spisok(message: types.Message):
 
-                print('handle spisok')
 
                 bot_user = await self.get_bot_user(message.from_user)
                 await database_sync_to_async(bot_user.upd_last_active)()
 
-                print('before json.load')
+                #print('before json.load')
 
                 text = "Это начала диалога  про список магазинов"
                 root_node_id = 0
-                print('before params')
+                #print('before params')
                 params = await self.get_orgs_tree_dialog_teleg_params(root_node_id)
-                print('after params')
+                #print('after params')
                 await message.answer(params['text'],
                                      reply_markup=params['reply_markup'],
                                      parse_mode=params['parse_mode'])
