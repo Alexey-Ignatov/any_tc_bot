@@ -423,8 +423,8 @@ class Command(BaseCommand):
                 return
 
             node_id_to_show, org_list, intent_list = await self.prebot(message.text)
-            if intent_list and intent_list[0] == 'ukn':
-                node_id_to_show, org_list, intent_list = -3,[],[]
+            #if intent_list and intent_list[0] == 'ukn':
+            #    node_id_to_show, org_list, intent_list = -3,[],[]
             #back_btn = node_id_to_show != -1
             back_btn = False
             params = await self.get_orgs_tree_dialog_teleg_params(node_id_to_show, org_list, back_btn=back_btn)
