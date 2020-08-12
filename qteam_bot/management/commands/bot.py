@@ -370,7 +370,7 @@ class Command(BaseCommand):
             if final_try:
                 return -2, [], ['ukn']
             else:
-                prebot(self, spellcheck(msg), final_try=True)
+                self.prebot(self, spellcheck(msg), final_try=True)
         return -1, stores, intent_list
 
 
