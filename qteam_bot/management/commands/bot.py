@@ -368,7 +368,7 @@ class Command(BaseCommand):
         stores = [stores[ind] for ind in stores_inds_order][:max(15, top_num)]
         if not stores:
             #if final_try:
-            
+
             return -2, [], ['ukn']
             #else:
                 #self.prebot(spellcheck(msg), final_try=True)
@@ -459,10 +459,21 @@ class Command(BaseCommand):
             await database_sync_to_async(bot_user.upd_last_active)()
 
             await database_sync_to_async(StartEvent.objects.create)(bot_user=bot_user)
+            org = await database_sync_to_async(Store.objects.get)(title="В школу на всех парусах!", bot=self.acur_bot)
+            # keyboard = []
+            keyboard = InlineKeyboardMarkup()
+
+            callback_dict = {'type': 'show_org',
+                             'org_id': org.id,
+                             'plist': ''}
+            btn = InlineKeyboardButton(text="В школу на всех парусах!",
+                                       callback_data=json.dumps(callback_dict))
+            keyboard.row(btn)
 
 
             await message.answer_photo(self.bot_config['welcome_photo_url'],
                                        caption=self.bot_config['welcome_text'][:MAX_CAPTION_SIZE],
+                                       reply_markup=keyboard,
                                        parse_mode="Markdown")
 
 
@@ -619,17 +630,7 @@ class Command(BaseCommand):
                                      reply_markup=params['reply_markup'],
                                      parse_mode=params['parse_mode'])
 
-            @self.dp.message_handler(commands=['start'])
-            async def handle_welcome(message: types.Message):
 
-                bot_user = await self.get_bot_user(message.from_user)
-                await database_sync_to_async(bot_user.upd_last_active)()
-
-                await database_sync_to_async(StartEvent.objects.create)(bot_user=bot_user)
-
-                await message.answer_photo(self.bot_config['welcome_photo_url'],
-                                           caption=self.bot_config['welcome_text'][:MAX_CAPTION_SIZE],
-                                           parse_mode="Markdown")
 
 
         @self.dp.channel_post_handler(content_types=ContentTypes.ANY)
