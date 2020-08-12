@@ -368,6 +368,7 @@ class Command(BaseCommand):
         stores = [stores[ind] for ind in stores_inds_order][:max(15, top_num)]
         if not stores:
             #if final_try:
+            
             return -2, [], ['ukn']
             #else:
                 #self.prebot(spellcheck(msg), final_try=True)
