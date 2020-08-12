@@ -36,6 +36,13 @@ def norm_name(name):
     name_regex = '[a-zA-Zа-яА-Я]+|\d+'
     return regexp_tokenize((name).lower(), name_regex)
 
+def spellcheck(text):
+    params = {'text': text}
+    r =requests.get("https://speller.yandex.net/services/spellservice.json/checkText", params=params)
+    if r.ok and r.json():
+        return text.replace(r.json()[0]['word'], r.json()[0]['s'][0])
+    return text
+
 def extr_nouns(expl_str):
     r = requests.post('http://localhost:5000/model', data=json.dumps({'x':[expl_str]}),
                       headers={"content-type":"application/json", 'accept':'application/json'})
@@ -319,7 +326,7 @@ class Command(BaseCommand):
 
 
 
-    async def prebot(self, msg):
+    async def prebot(self, msg, final_try=False):
 
         name_result_list = await self.org_find_name_keywords(msg)
         name_result_list += await self.org_find_name_keywords(extr_nouns(msg))
@@ -360,7 +367,10 @@ class Command(BaseCommand):
         stores_inds_order = sorted(list(range(len(stores))), key=ind_relevance.__getitem__, reverse=True)
         stores = [stores[ind] for ind in stores_inds_order][:max(15, top_num)]
         if not stores:
-            return -2, [], ['ukn']
+            if final_try:
+                return -2, [], ['ukn']
+            else:
+                prebot(self, spellcheck(msg), final_try=True)
         return -1, stores, intent_list
 
 
