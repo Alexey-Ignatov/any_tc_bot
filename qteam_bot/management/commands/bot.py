@@ -367,10 +367,10 @@ class Command(BaseCommand):
         stores_inds_order = sorted(list(range(len(stores))), key=ind_relevance.__getitem__, reverse=True)
         stores = [stores[ind] for ind in stores_inds_order][:max(15, top_num)]
         if not stores:
-            if final_try:
-                return -2, [], ['ukn']
-            else:
-                self.prebot(spellcheck(msg), final_try=True)
+            #if final_try:
+            return -2, [], ['ukn']
+            #else:
+                #self.prebot(spellcheck(msg), final_try=True)
         return -1, stores, intent_list
 
 
