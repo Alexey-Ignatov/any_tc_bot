@@ -88,8 +88,6 @@ def get_best_keyword_match(msg, kw_to_id, th):
 
 
 
-
-
 class Command(BaseCommand):
 
     async def get_bot_user(self, from_user):
@@ -109,7 +107,6 @@ class Command(BaseCommand):
 
 
     async def load_mags(self):
-        import time
 
         #print('before_pickle')
         df = pd.read_pickle(self.bot_config['load_data_pickle_path'])
@@ -299,27 +296,27 @@ class Command(BaseCommand):
 
 
 
-    async def org_find_name_keywords(self, query):
-        kw_to_ind = defaultdict(list)
-        stores_list = await database_sync_to_async(Store.objects.filter)(bot = self.acur_bot)
-        stores_list = await sync_to_async(list)(stores_list)
-        for store in stores_list:
-            if str(store.keywords) in ['nan', '']:
-                continue
-            for kw in store.keywords.split(','):
-                kw_to_ind[kw.strip().lower()] += [store.id]
+        async def org_find_name_keywords(self, query):
+            kw_to_ind = defaultdict(list)
+            stores_list = await database_sync_to_async(Store.objects.filter)(bot = self.acur_bot)
+            stores_list = await sync_to_async(list)(stores_list)
+            for store in stores_list:
+                if str(store.keywords) in ['nan', '']:
+                    continue
+                for kw in store.keywords.split(','):
+                    kw_to_ind[kw.strip().lower()] += [store.id]
 
-        brand_name_to_id = defaultdict(list)
-        for store in stores_list:
-            mag_short_name = store.brand.strip().lower()
-            brand_name_to_id[mag_short_name] += [store.id]
+            brand_name_to_id = defaultdict(list)
+            for store in stores_list:
+                mag_short_name = store.brand.strip().lower()
+                brand_name_to_id[mag_short_name] += [store.id]
 
-            brand_name_to_id[cyrtranslit.to_cyrillic(mag_short_name, 'ru')] += [store.id]
+                brand_name_to_id[cyrtranslit.to_cyrillic(mag_short_name, 'ru')] += [store.id]
 
-            if str(store.alter_names) in ['nan', '']:
-                continue
-            for kw in store.alter_names.split(','):
-                brand_name_to_id[kw.strip().lower()] += [store.id]
+                if str(store.alter_names) in ['nan', '']:
+                    continue
+                for kw in store.alter_names.split(','):
+                    brand_name_to_id[kw.strip().lower()] += [store.id]
 
 
         return get_best_keyword_match(query, brand_name_to_id, 90)+get_best_keyword_match(query, kw_to_ind, 90)
@@ -431,26 +428,6 @@ class Command(BaseCommand):
             await message.answer('Напишите запрос оператору:')
 
 
-        @self.dp.message_handler(commands=['spisok'])
-        async def handle_spisok(message: types.Message):
-
-            #print('handle spisok')
-
-            bot_user = await self.get_bot_user(message.from_user)
-            await database_sync_to_async(bot_user.upd_last_active)()
-
-            #print('before json.load')
-
-            text = "Это начала диалога  про список магазинов"
-            root_node_id = 0
-            #print('before params')
-            params = await self.get_orgs_tree_dialog_teleg_params(root_node_id)
-            #print('after params')
-            await message.answer(params['text'],
-                                 reply_markup=params['reply_markup'],
-                                 parse_mode=params['parse_mode'])
-
-
 
         @self.dp.message_handler(commands=['start'])
         async def handle_welcome(message: types.Message):
@@ -459,16 +436,17 @@ class Command(BaseCommand):
             await database_sync_to_async(bot_user.upd_last_active)()
 
             await database_sync_to_async(StartEvent.objects.create)(bot_user=bot_user)
-            org = await database_sync_to_async(Store.objects.get)(title="В школу на всех парусах!", bot=self.acur_bot)
+            org = await database_sync_to_async(Store.objects.filter)(title="В школу на всех парусах!", bot=self.acur_bot)
             # keyboard = []
             keyboard = InlineKeyboardMarkup()
-
-            callback_dict = {'type': 'show_org',
-                             'org_id': org.id,
-                             'plist': ''}
-            btn = InlineKeyboardButton(text="В школу на всех парусах!",
-                                       callback_data=json.dumps(callback_dict))
-            keyboard.row(btn)
+            if org:
+                org = org[0]
+                callback_dict = {'type': 'show_org',
+                                 'org_id': org.id,
+                                 'plist': ''}
+                btn = InlineKeyboardButton(text="В школу на всех парусах!",
+                                           callback_data=json.dumps(callback_dict))
+                keyboard.row(btn)
 
 
             await message.answer_photo(self.bot_config['welcome_photo_url'],
@@ -504,7 +482,7 @@ class Command(BaseCommand):
 
             intent_list = []
             node_id_to_show = -1
-            org_list, org_id_to_props =await self.fing_prod_props(message.text)
+            org_list, org_id_to_props = await self.fing_prod_props(message.text)
             org_id_to_text = {}
             org_id_to_pic_list = {}
 
