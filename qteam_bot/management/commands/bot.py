@@ -320,7 +320,7 @@ class Command(BaseCommand):
 
         lines_list = []
         for i, org in enumerate(stores_to_show):
-            cur_title = org_id_to_some_data[org.id]['short_descr'][org.id]
+            cur_title = org_id_to_some_data[org.id]['short_descr']
             lines_list += ["{}. {}".format(i + 1, cur_title)]
         text += '\n'
         text += ('\n').join(lines_list)
