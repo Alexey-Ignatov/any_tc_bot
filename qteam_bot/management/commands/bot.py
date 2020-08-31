@@ -253,7 +253,7 @@ class Command(BaseCommand):
                     floor=str(row['floor']),
                     phone_number='',#row['phone'] if str(row['phone']) != 'nan' else '',
                     pic_urls=row['photos'] if str(row['photos']) != 'nan' else json.dumps([]),
-                    plan_image=row['map_new'],
+                    plan_image=row['map'],
                     store_image=row['store'],
                     bot=self.acur_bot,
                     is_availible_for_subscription=is_avail_for_subscr,
@@ -276,7 +276,7 @@ class Command(BaseCommand):
 
         text_bot.stores_list = stores_list
 
-        """        row_list = []
+        row_list = []
         for cur_org in text_bot.stores_list:
             for kw in cur_org.assort_kw.split(','):
                 if not kw.strip():
@@ -297,12 +297,12 @@ class Command(BaseCommand):
 
         text_bot.prod_name_to_indlist = prod_name_to_indlist
         text_bot.prods_df_enriched = prods_df_enriched
-        import pickle
-        pickle.dump(prod_name_to_indlist, open('prod_name_to_indlist.pickle', 'wb'))
-        pickle.dump(prods_df_enriched, open('prods_df_enriched.pickle', 'wb'))"""
+        #import pickle
+        #pickle.dump(prod_name_to_indlist, open('prod_name_to_indlist.pickle', 'wb'))
+        #pickle.dump(prods_df_enriched, open('prods_df_enriched.pickle', 'wb'))
 
-        text_bot.prod_name_to_indlist = pd.read_pickle('prod_name_to_indlist.pickle')
-        text_bot.prods_df_enriched = pd.read_pickle('prods_df_enriched.pickle')
+        #text_bot.prod_name_to_indlist = pd.read_pickle('prod_name_to_indlist.pickle')
+        #text_bot.prods_df_enriched = pd.read_pickle('prods_df_enriched.pickle')
         text_bot.in_2_label = pd.read_pickle('in_2_label.pkl')
 
         self.text_bot = text_bot
