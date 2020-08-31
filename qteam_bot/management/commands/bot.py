@@ -314,7 +314,7 @@ class Command(BaseCommand):
                 org = await database_sync_to_async(Store.objects.get)(pk=real_data['org_id'], bot=self.acur_bot)
         except Store.DoesNotExist:
             return
-        bot_user = await self.get_bot_user(callback.from_user)
+        bot_user = await self.get_bot_user(system_msg.from_user)
         photo_id = await org.get_plan_pic_file_id(self.dp.bot)
         params = await self.get_card_message_telegram_req_params(org, bot_user)
         media = [InputMediaPhoto(media=photo_id,
