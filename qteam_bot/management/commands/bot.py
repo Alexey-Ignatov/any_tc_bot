@@ -205,7 +205,7 @@ class TextProcesser:
 
         if not stores_inds_order and not final_try:
             return self.process(spellcheck(msg), final_try=True)
-        return stores_inds_order, org_id_to_props
+        return stores_inds_order, org_id_to_props, list(intent_list.keys())
 
 
 
@@ -225,7 +225,6 @@ class Command(BaseCommand):
             bot_user = await database_sync_to_async(BotUser.objects.filter)(bot_user_id=str(from_user.id), bot=self.acur_bot)[0]
 
         return bot_user
-
 
     async def load_mags(self):
 
@@ -303,7 +302,58 @@ class Command(BaseCommand):
         self.text_bot = text_bot
             # context.bot.send_media_group(chat_id=update.effective_chat.id, media=[inp_photo, inp_photo2])
 
+    async def send_store_list(self,message, org_id_to_some_data, intent_list):
 
+        text = "Возможно, вам подойдет:"
+
+        keyboard = InlineKeyboardMarkup()
+        stores_to_show = await database_sync_to_async(Store.objects.filter)(pk__in = org_id_to_some_data.keys(),
+                                                                        bot=self.acur_bot)
+
+        stores_to_show = await sync_to_async(list)(intent_res)
+
+        lines_list = []
+        for i, org in enumerate(stores_to_show):
+            cur_title = org.get_inlist_descr()
+            cur_title = org_id_to_some_data['text'][org.id]
+            lines_list += ["{}. {}".format(i + 1, cur_title)]
+        text += '\n'
+        text += ('\n').join(lines_list)
+
+        keyboard_line_list = []
+        for i, org in enumerate(stores_to_show):
+            callback_dict = {'type': 'show_org',
+                             'org_id': org.id,
+                             'plist': org_id_to_pic_list[org.id] if org.id in org_id_to_pic_list else ''}
+            btn = InlineKeyboardButton(text=str(i + 1),
+                                       callback_data=json.dumps(callback_dict))
+            keyboard_line_list.append(btn)
+            if i % 3 == 3 - 1:
+                keyboard.row(*keyboard_line_list)
+                keyboard_line_list = []
+        if keyboard_line_list:
+            keyboard.row(*keyboard_line_list)
+
+
+
+        for intent_type in intent_list:
+            if intent_type not in self.intent_to_name:
+                continue
+            btn_prev = InlineKeyboardButton(text="Все из категории " + self.intent_to_name[intent_type],
+                                            callback_data=json.dumps(
+                                                {'node_id': self.intent_to_node[intent_type],
+                                                 'type': 'show_cat'}))
+            keyboard.row(btn_prev)
+
+
+        btn_prev = InlineKeyboardButton(text="Связаться с оператором",
+                                        callback_data=json.dumps({'type': 'operator'}))
+
+        keyboard.row(btn_prev)
+
+        await message.answer(text,
+                            parse_mode="Markdown",
+                             reply_markup=keyboard)
 
     async def get_orgs_tree_dialog_teleg_params(self,
                                                 node_id,
@@ -488,15 +538,6 @@ class Command(BaseCommand):
             await self.init_text_bot()
 
 
-        @self.dp.message_handler(commands=['operator'])
-        async def handle_operator(message: types.Message):
-            bot_user = await self.get_bot_user(message.from_user)
-            await database_sync_to_async(bot_user.upd_last_active)()
-
-            bot_user.is_operator_dicussing = True
-            await database_sync_to_async(bot_user.save)()
-            await message.answer('Напишите запрос оператору:')
-
 
 
         @self.dp.message_handler(commands=['start'])
@@ -551,54 +592,26 @@ class Command(BaseCommand):
                 await database_sync_to_async(bot_user.save)()
                 return
 
-            intent_list = []
-            node_id_to_show = -1
-            org_list, org_id_to_props = self.text_bot.process(message.text)
-            org_id_to_text = {}
+
+            org_list, org_id_to_props, intent_list = self.text_bot.process(message.text)
+            org_id_to_some_data = defaultdict(dict)
             org_id_to_pic_list = {}
 
             for org in org_list:
                 if org_id_to_props[org.id]['mean_price']:
-                    org_id_to_text[org.id] = org.get_inlist_descr(
+                    org_id_to_some_data[org.id]['short_descr'] = org.get_inlist_descr(
                         "(~{} руб.)".format(int(org_id_to_props[org.id]['mean_price'])))
                 else:
-                    org_id_to_text[org.id] = org.get_inlist_descr()
+                    org_id_to_some_data[org.id]['short_descr'] = org.get_inlist_descr()
                 pic_list = org_id_to_props[org.id]['example_pics']
                 plit = await database_sync_to_async(PictureList.objects.create)(json_data=json.dumps(pic_list))
-                org_id_to_pic_list[org.id] = plit.id
+                org_id_to_some_data[org.id]['plit_id'] = plit.id
 
-            back_btn = False
-            if len(org_list) == 1 :
-
+            await send_store_list(message, org_id_to_some_data, intent_list)
 
 
-            params = await self.get_orgs_tree_dialog_teleg_params(node_id_to_show,
-                                                                  org_list,
-                                                                  back_btn=back_btn,
-                                                                  org_id_to_text=org_id_to_text,
-                                                                  org_id_to_pic_list=org_id_to_pic_list)
-            
-            ans_dict = {'node_id_to_show':node_id_to_show,
-                        'org_list':[org.id for org in org_list],
-                        'intent_list':intent_list}
-            saved_answer  = await database_sync_to_async( SavedAnswer.objects.create)(json_data=json.dumps(ans_dict))
-
-            if node_id_to_show == -1:
-                for intent_type in intent_list:
-                    if intent_type not in self.intent_to_name:
-                        continue
-                    btn_prev = InlineKeyboardButton(text="Все из категории "+self.intent_to_name[intent_type],
-                                                    callback_data=json.dumps(
-                                                        {'node_id': self.intent_to_node[intent_type],
-                                                         'type': 'dialog',
-                                                         'saved_id':saved_answer.id,
-                                                        }))
-                    params['reply_markup'].row(btn_prev)
 
 
-            await message.answer(params['text'],
-                                      reply_markup=params['reply_markup'],
-                                      parse_mode=params['parse_mode'])
 
 
 
