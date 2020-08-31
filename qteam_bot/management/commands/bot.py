@@ -308,6 +308,30 @@ class Command(BaseCommand):
         self.text_bot = text_bot
             # context.bot.send_media_group(chat_id=update.effective_chat.id, media=[inp_photo, inp_photo2])
 
+    async def show_card(self, real_data, system_msg):
+        try:
+            if 'org_id' in real_data:
+                org = await database_sync_to_async(Store.objects.get)(pk=real_data['org_id'], bot=self.acur_bot)
+        except Store.DoesNotExist:
+            return
+
+        photo_id = await org.get_plan_pic_file_id(self.dp.bot)
+        params = await self.get_card_message_telegram_req_params(org, bot_user)
+        media = [InputMediaPhoto(media=photo_id,
+                                 caption=params['text'][:MAX_CAPTION_SIZE],
+                                 parse_mode=params['parse_mode'], )]
+
+        if not real_data['plist']:
+            for photo_id in json.loads(org.pic_urls)[:8]:
+                media.append(InputMediaPhoto(photo_id))
+        else:
+            plist = await database_sync_to_async(PictureList.objects.get)(pk=real_data['plist'])
+            for photo_id in json.loads(plist.json_data)[:8]:
+                media.append(InputMediaPhoto(photo_id))
+
+        # await bot.send_media_group(message.from_user.id, media)
+        await system_msg.answer_media_group(media)
+        
     async def send_store_list(self,message, org_id_to_some_data, intent_list):
 
         text = "Возможно, вам подойдет:"
@@ -360,86 +384,6 @@ class Command(BaseCommand):
                             parse_mode="Markdown",
                              reply_markup=keyboard)
 
-    async def get_orgs_tree_dialog_teleg_params(self,
-                                                node_id,
-                                                orgs_add_to_show = [],
-                                                back_btn = False,
-                                                org_id_to_text = {},
-                                                org_id_to_pic_list = {} ):
-        #print('get_orgs_tree_dialog_teleg_params')
-        node_info = [node for node in self.org_hier_dialog if node['node_id'] == node_id][0]
-        #print('node_info', node_info)
-        text = node_info['text']
-
-
-        #keyboard = []
-        keyboard = InlineKeyboardMarkup()
-
-        if node_info['type'] == 'dnode':
-            for btn in node_info['btns']:
-                btn_prev = InlineKeyboardButton(text=btn['text'],
-                                                callback_data=json.dumps(
-                                                    {'node_id': btn['dest'],
-                                                     'type': 'dialog'
-                                                    }))
-                #keyboard.append([btn_prev])
-                keyboard.add(btn_prev)
-
-        if node_info['type'] == 'show_orgs':
-            #print("if node_info['type'] == 'show_orgs':")
-            intent_res = await database_sync_to_async( Store.objects.filter)(cat__title__in = node_info['intents_list'], bot = self.acur_bot)
-            
-            intent_res = await sync_to_async(list)(intent_res)
-            #print('intent_res', intent_res)
-            if node_info['l_str_bound_eq']:
-                intent_res = [org for org in intent_res if org.title>=node_info['l_str_bound_eq']]
-            if node_info['r_str_bound_neq']:
-                intent_res = [org for org in intent_res if org.title<node_info['r_str_bound_neq']]
-
-            #extra_list = Store.objects.filter(pk__in = node_info['extra_orgs_list'])
-            #extra_list = list(extra_list)+list(orgs_add_to_show)
-            #stores_to_show = orgs_add_to_show
-            stores_to_show = intent_res + orgs_add_to_show
-
-            lines_list = []
-            for i, org in enumerate(stores_to_show):
-                cur_title = org.get_inlist_descr()
-                if org.id in org_id_to_text:
-                    cur_title = org_id_to_text[org.id]
-                lines_list+=["{}. {}".format(i+1,cur_title)]
-            text += '\n'
-            text += ('\n').join(lines_list)
-
-            keyboard_line_list = []
-            for i, org in enumerate(stores_to_show):
-
-                callback_dict = {'type': 'show_org',
-                                 'org_id': org.id,
-                                 'plist': org_id_to_pic_list[org.id] if org.id in org_id_to_pic_list else ''}
-                btn = InlineKeyboardButton(text=str(i+1),
-                                                callback_data=json.dumps(callback_dict))
-                keyboard_line_list.append(btn)
-                if i % 3 == 3 - 1:
-                    keyboard.row(*keyboard_line_list)
-                    keyboard_line_list = []
-            if keyboard_line_list:
-                keyboard.row(*keyboard_line_list)
-
-            if back_btn:
-                btn = InlineKeyboardButton(text='Назад',
-                                           callback_data=json.dumps(
-                                               {'node_id': node_info['back_node_id'],
-                                                'type': 'dialog'}))
-                keyboard.row(btn)
-
-        btn_prev = InlineKeyboardButton(text="Связаться с оператором",
-                                        callback_data=json.dumps({'type': 'operator'}))
-
-        keyboard.row(btn_prev)
-
-        return {"text":text ,
-                "parse_mode": "Markdown",
-                "reply_markup": keyboard}
 
 
     async def get_card_message_telegram_req_params(self, org, bot_user):
@@ -600,8 +544,8 @@ class Command(BaseCommand):
 
             org_list, org_id_to_props, intent_list = self.text_bot.process(message.text)
             org_id_to_some_data = defaultdict(dict)
-            org_id_to_pic_list = {}
 
+            org_id_to_pic_list = {}
             for org in org_list:
                 print(org.id ,'org.id')
                 if org_id_to_props[org.id]['mean_price']:
@@ -621,33 +565,6 @@ class Command(BaseCommand):
 
 
 
-        async def show_card(self, real_data, system_msg):
-            try:
-                if 'org_id' in real_data:
-                    org = await database_sync_to_async(Store.objects.get)(pk=real_data['org_id'], bot=self.acur_bot)
-            except Store.DoesNotExist:
-                return
-
-            photo_id = await org.get_plan_pic_file_id(self.dp.bot)
-            params = await self.get_card_message_telegram_req_params(org, bot_user)
-            media = [InputMediaPhoto(media=photo_id,
-                                     caption=params['text'][:MAX_CAPTION_SIZE],
-                                     parse_mode=params['parse_mode'], )]
-
-            if not real_data['plist']:
-                for photo_id in json.loads(org.pic_urls)[:8]:
-                    media.append(InputMediaPhoto(photo_id))
-            else:
-                plist = await database_sync_to_async(PictureList.objects.get)(pk=real_data['plist'])
-                for photo_id in json.loads(plist.json_data)[:8]:
-                    media.append(InputMediaPhoto(photo_id))
-
-            # await bot.send_media_group(message.from_user.id, media)
-            await system_msg.answer_media_group(media)
-
-
-
-
         @self.dp.callback_query_handler()
         async def keyboard_callback_handler(callback: CallbackQuery):
             data = callback.data
@@ -661,14 +578,6 @@ class Command(BaseCommand):
                 await database_sync_to_async(bot_user.save)()
                 await callback.message.answer('Напишите запрос оператору:')
                 return
-
-            if real_data['type'] == 'dialog':
-                node_id = real_data['node_id']
-                params =await self.get_orgs_tree_dialog_teleg_params(node_id)
-
-                await callback.message.edit_text(params['text'],
-                                        reply_markup=params['reply_markup'],
-                                        parse_mode=params['parse_mode'])
 
 
             if real_data['type'] in ['show_org'] and 'org_id' in real_data:
