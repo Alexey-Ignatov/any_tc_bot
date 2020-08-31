@@ -286,7 +286,7 @@ class Command(BaseCommand):
         text_bot.stores_list = stores_list
 
         row_list = []
-        for cur_org in a.stores_list:
+        for cur_org in text_bot.stores_list:
             for kw in cur_org.assort_kw.split(','):
                 if not kw.strip():
                     continue
