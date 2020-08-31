@@ -314,7 +314,7 @@ class Command(BaseCommand):
                 org = await database_sync_to_async(Store.objects.get)(pk=real_data['org_id'], bot=self.acur_bot)
         except Store.DoesNotExist:
             return
-
+        bot_user = await self.get_bot_user(callback.from_user)
         photo_id = await org.get_plan_pic_file_id(self.dp.bot)
         params = await self.get_card_message_telegram_req_params(org, bot_user)
         media = [InputMediaPhoto(media=photo_id,
@@ -570,7 +570,7 @@ class Command(BaseCommand):
             data = callback.data
             real_data = json.loads(data)
 
-            bot_user = await self.get_bot_user(callback.from_user)
+
             await database_sync_to_async(bot_user.upd_last_active)()
 
             if real_data['type'] == 'operator':
