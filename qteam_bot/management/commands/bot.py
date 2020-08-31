@@ -607,7 +607,7 @@ class Command(BaseCommand):
                 plit = await database_sync_to_async(PictureList.objects.create)(json_data=json.dumps(pic_list))
                 org_id_to_some_data[org.id]['plit_id'] = plit.id
 
-            await send_store_list(message, org_id_to_some_data, intent_list)
+            await self.send_store_list(message, org_id_to_some_data, intent_list)
 
 
 
