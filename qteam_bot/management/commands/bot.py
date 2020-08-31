@@ -570,7 +570,7 @@ class Command(BaseCommand):
             data = callback.data
             real_data = json.loads(data)
 
-
+            bot_user = await self.get_bot_user(callback.from_user)
             await database_sync_to_async(bot_user.upd_last_active)()
 
             if real_data['type'] == 'operator':
