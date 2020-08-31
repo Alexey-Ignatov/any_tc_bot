@@ -437,6 +437,7 @@ class Command(BaseCommand):
 
             await database_sync_to_async(StartEvent.objects.create)(bot_user=bot_user)
             org = await database_sync_to_async(Store.objects.filter)(title="В школу на всех парусах!", bot=self.acur_bot)
+            org = await sync_to_async(list)(org)
             # keyboard = []
             keyboard = InlineKeyboardMarkup()
             if org:
