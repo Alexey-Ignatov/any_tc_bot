@@ -485,7 +485,7 @@ class Command(BaseCommand):
                 org_id_to_some_data[org.id]['plit_id'] = plit.id
 
             if len(org_id_to_some_data)==1:
-
+                await self.show_card(org.id,org_id_to_some_data[org.id]['plit_id'])
             await self.send_store_list(message, org_id_to_some_data, intent_list)
 
 
