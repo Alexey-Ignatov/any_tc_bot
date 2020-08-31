@@ -240,7 +240,7 @@ class Command(BaseCommand):
         #print('before_pickle')
         df = pd.read_pickle(self.bot_config['load_data_pickle_path'])
         #print('after pickle')
-        for ind, row in df.iterrows():
+        for ind, row in df.iloc[:5].iterrows():
             #print(ind)
             try:
                 store_cat = await database_sync_to_async(StoreCategory.objects.get)(title=row['intent'])
@@ -274,38 +274,40 @@ class Command(BaseCommand):
             await store.get_plan_pic_file_id(self.dp.bot)
             #store.get_store_pic_file_id(context.bot)
 
-            text_bot = TextProcesser()
-            prods_df = pd.read_pickle('new_prods_df.pickle')
-
-            text_bot.stores_list = stores_list
-
-            row_list = []
-            for cur_org in tqdm(a.stores_list):
-                for kw in cur_org.assort_kw.split(','):
-                    if not kw.strip():
-                        continue
-                    row_template = pd.Series(np.nan, index=prods_df.iloc[0, :].index)
-                    row_template['name'] = kw.strip()
-                    row_template['search_kw'] = [kw.strip()]
-                    row_template['store_url'] = cur_org.be_in_link
-                    row_list.append(row_template)
-
-            add_prods_df = pd.DataFrame(row_list)
-            prods_df_enriched = prods_df.append(add_prods_df).reset_index().iloc[:, 1:]
-
-            prod_name_to_indlist = defaultdict(list)
-            for ind, row in prods_df_enriched.iterrows():
-                for kw in row['search_kw']:
-                    prod_name_to_indlist[kw].append(ind)
-
-            text_bot.prod_name_to_indlist = prod_name_to_indlist
-            text_bot.prods_df_enriched = prods_df_enriched
-            text_bot.in_2_label = pd.read_pickle('in_2_label.pkl')
-
-            self.text_bot = text_bot
-            # context.bot.send_media_group(chat_id=update.effective_chat.id, media=[inp_photo, inp_photo2])
-
             await asyncio.sleep(.5)
+
+        stores_list = await database_sync_to_async(Store.objects.filter)(bot=self.acur_bot)
+        stores_list = await sync_to_async(list)(stores_list)
+        text_bot = TextProcesser()
+        prods_df = pd.read_pickle('new_prods_df.pickle')
+
+        text_bot.stores_list = stores_list
+
+        row_list = []
+        for cur_org in tqdm(a.stores_list):
+            for kw in cur_org.assort_kw.split(','):
+                if not kw.strip():
+                    continue
+                row_template = pd.Series(np.nan, index=prods_df.iloc[0, :].index)
+                row_template['name'] = kw.strip()
+                row_template['search_kw'] = [kw.strip()]
+                row_template['store_url'] = cur_org.be_in_link
+                row_list.append(row_template)
+
+        add_prods_df = pd.DataFrame(row_list)
+        prods_df_enriched = prods_df.append(add_prods_df).reset_index().iloc[:, 1:]
+
+        prod_name_to_indlist = defaultdict(list)
+        for ind, row in prods_df_enriched.iterrows():
+            for kw in row['search_kw']:
+                prod_name_to_indlist[kw].append(ind)
+
+        text_bot.prod_name_to_indlist = prod_name_to_indlist
+        text_bot.prods_df_enriched = prods_df_enriched
+        text_bot.in_2_label = pd.read_pickle('in_2_label.pkl')
+
+        self.text_bot = text_bot
+            # context.bot.send_media_group(chat_id=update.effective_chat.id, media=[inp_photo, inp_photo2])
 
     async def fing_prod_props(self,msg):
         prod_type_to_ind = {kw: [i] for i, kw in enumerate(self.wear_kws)}
@@ -644,21 +646,25 @@ class Command(BaseCommand):
 
             intent_list = []
             node_id_to_show = -1
-            org_list, org_id_to_props = await self.fing_prod_props(message.text)
+            org_list, org_id_to_props = await self.text_bot.process(message.text)
             org_id_to_text = {}
             org_id_to_pic_list = {}
 
             for org in org_list:
-                org_id_to_text[org.id] = org.get_inlist_descr("(~{} руб.)".format(int(org_id_to_props[org.id]['mean_price'])))
+                if org_id_to_props[org.id]['mean_price']:
+                    org_id_to_text[org.id] = org.get_inlist_descr(
+                        "(~{} руб.)".format(int(org_id_to_props[org.id]['mean_price'])))
+                else:
+                    org_id_to_text[org.id] = org.get_inlist_descr()
                 pic_list = org_id_to_props[org.id]['example_pics']
                 plit = await database_sync_to_async(PictureList.objects.create)(json_data=json.dumps(pic_list))
                 org_id_to_pic_list[org.id] = plit.id
 
             #print(org_id_to_props)
-            if not org_list:
-                node_id_to_show, org_list, intent_list = await self.prebot(message.text)
-                org_id_to_text = {}
-                org_id_to_pic_list = {}
+            #if not org_list:
+            #    node_id_to_show, org_list, intent_list = await self.prebot(message.text)
+            #    org_id_to_text = {}
+            #    org_id_to_pic_list = {}
             #if intent_list and intent_list[0] == 'ukn':
             #    node_id_to_show, org_list, intent_list = -3,[],[]
             #back_btn = node_id_to_show != -1
