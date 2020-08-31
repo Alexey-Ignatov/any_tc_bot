@@ -308,7 +308,7 @@ class Command(BaseCommand):
         self.text_bot = text_bot
             # context.bot.send_media_group(chat_id=update.effective_chat.id, media=[inp_photo, inp_photo2])
 
-    async def show_card(self, org_id,plist_id, system_msg):
+    async def show_card(self, system_msg,org_id,plist_id):
         try:
             org = await database_sync_to_async(Store.objects.get)(pk=org_id, bot=self.acur_bot)
         except Store.DoesNotExist:
@@ -483,7 +483,7 @@ class Command(BaseCommand):
                 org_id_to_some_data[org.id]['plit_id'] = plit.id
 
             if len(org_id_to_some_data)==1:
-                await self.show_card(org.id,org_id_to_some_data[org.id]['plit_id'])
+                await self.show_card(message,org.id,org_id_to_some_data[org.id]['plit_id'])
             await self.send_store_list(message, org_id_to_some_data, intent_list)
 
 
@@ -504,7 +504,7 @@ class Command(BaseCommand):
 
 
             if real_data['type'] in ['show_org'] and 'org_id' in real_data:
-                await self.show_card(real_data['org_id'],real_data['plist'], callback.message)
+                await self.show_card(callback.message,real_data['org_id'],real_data['plist'])
 
 
 
