@@ -488,7 +488,7 @@ class Command(BaseCommand):
                 await self.show_card(message,org.id,org_id_to_some_data[org.id]['plit_id'])
                 return
             if not org_id_to_some_data:
-                card = await database_sync_to_async(Store.objects.get)(intent_new='["no_answer"]',bot=self.acur_bot)
+                card = await database_sync_to_async(Store.objects.get)(intent_list='["no_answer"]',bot=self.acur_bot)
                 await self.show_card(message, card.id, -1)
                 return
             await self.send_store_list(message, org_id_to_some_data, intent_list)
