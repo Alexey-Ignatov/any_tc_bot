@@ -585,26 +585,6 @@ class Command(BaseCommand):
 
 
 
-            @self.dp.message_handler(commands=['spisok'])
-            async def handle_spisok(message: types.Message):
-
-
-                bot_user = await self.get_bot_user(message.from_user)
-                await database_sync_to_async(bot_user.upd_last_active)()
-
-                #print('before json.load')
-
-                text = "Это начала диалога  про список магазинов"
-                root_node_id = 0
-                #print('before params')
-                params = await self.get_orgs_tree_dialog_teleg_params(root_node_id)
-                #print('after params')
-                await message.answer(params['text'],
-                                     reply_markup=params['reply_markup'],
-                                     parse_mode=params['parse_mode'])
-
-
-
 
         @self.dp.channel_post_handler(content_types=ContentTypes.ANY)
         async def my_channel_post_handler(message: types.Message):
