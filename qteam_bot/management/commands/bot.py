@@ -513,6 +513,17 @@ class Command(BaseCommand):
             if real_data['type'] in ['show_org'] and 'org_id' in real_data:
                 await self.show_card(callback.message,real_data['org_id'],real_data['plist'])
 
+            if real_data['type'] in ['show_cat']:
+                org_list =[org for org in self.text_bot.stores_list if real_data['iten'] in org.intent_list]
+                org_id_to_some_data = defaultdict(dict)
+                for org in org_list:
+                    org_id_to_some_data[org.id]['short_descr'] = org.get_inlist_descr()
+                    plit = await database_sync_to_async(PictureList.objects.create)(json_data=json.dumps([]))
+                    org_id_to_some_data[org.id]['plit_id'] = plit.id
+
+
+                await self.send_store_list(callback.message, org_id_to_some_data, [])
+
 
 
         @self.dp.channel_post_handler(content_types=ContentTypes.ANY)
