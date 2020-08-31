@@ -297,6 +297,9 @@ class Command(BaseCommand):
 
         text_bot.prod_name_to_indlist = prod_name_to_indlist
         text_bot.prods_df_enriched = prods_df_enriched
+        import pickle
+        pickle.dump(prod_name_to_indlist, open('prod_name_to_indlist.pickle', 'wb'))
+        pickle.dump(prods_df_enriched, open('prods_df_enriched.pickle', 'wb'))
         text_bot.in_2_label = pd.read_pickle('in_2_label.pkl')
 
         self.text_bot = text_bot
