@@ -267,7 +267,9 @@ class Command(BaseCommand):
 
             await store.get_plan_pic_file_id(self.dp.bot)
             await asyncio.sleep(.5)
+        await self.init_text_bot()
 
+    async def init_text_bot(self):
         stores_list = await database_sync_to_async(Store.objects.filter)(bot=self.acur_bot)
         stores_list = await sync_to_async(list)(stores_list)
         text_bot = TextProcesser()
@@ -441,55 +443,6 @@ class Command(BaseCommand):
 
 
 
-    async def prebot(self, msg, final_try=False):
-
-        name_result_list = await self.org_find_name_keywords(msg)
-        name_result_list += await self.org_find_name_keywords(extr_nouns(msg))
-        #name_result_list = []
-
-
-        r = requests.get(self.bot_config['model_api_url'], data={'context': msg})
-        intent_list =r.json()['intent_list']
-        
-        #intent_type = pd.Series(predict_dict).sort_values().index[-1]
-        #intent_list = [k for k, v in predict_dict.items() if v > .1]
-        #intent_list = sorted(intent_list, key=predict_dict.__getitem__, reverse=True )
-
-        #intent_type = 'juveliry'
-
-        if name_result_list:
-            stores = await database_sync_to_async(Store.objects.filter)(pk__in=name_result_list)
-            stores = await sync_to_async(list)(stores)
-
-        else:
-            stores = await database_sync_to_async(Store.objects.filter)(cat__title__in=intent_list,
-                                                                        bot=self.acur_bot)
-            stores = await sync_to_async(list)(stores)
-
-        #print('stores', stores)
-        used_intents = []
-        top_num = 0
-        ind_relevance = {}
-        for i, store in enumerate(stores):
-            intent = await database_sync_to_async(store.get_intent_name)()
-            ind_relevance[i] = -intent_list.index(intent)  if intent in intent_list else -100
-            if store.is_top:
-                ind_relevance[i]+=50
-                top_num+=1
-            #used_intents.append(intent)
-        #intent_list = [intent for intent in intent_list if intent in used_intents]
-
-        stores_inds_order = sorted(list(range(len(stores))), key=ind_relevance.__getitem__, reverse=True)
-        stores = [stores[ind] for ind in stores_inds_order][:max(15, top_num)]
-        if not stores:
-            #if final_try:
-
-            return -2, [], ['ukn']
-            #else:
-                #self.prebot(spellcheck(msg), final_try=True)
-        return -1, stores, intent_list
-
-
 
     def add_arguments(self, parser):
         parser.add_argument('config_path', type=str, help='Path to tc_bot_config')
@@ -532,8 +485,7 @@ class Command(BaseCommand):
             self.acur_bot, _ = await database_sync_to_async( AcurBot.objects.update_or_create)(
                 token=self.TOKEN, defaults=bot_defaults
             )
-            self.prods_df = pd.read_pickle('prods_df.pickle')
-            self.wear_kws = pickle.load( open('wear_kws.pickle', 'rb'))
+            await self.init_text_bot()
 
 
         @self.dp.message_handler(commands=['operator'])
