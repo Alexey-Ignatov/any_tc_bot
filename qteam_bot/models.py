@@ -64,6 +64,7 @@ class Store(models.Model):
     be_in_link = models.CharField(max_length=1000, default='no_link')
 
     intent_list = models.CharField(max_length=1000, default=json.dumps([]))
+    
     assort_kw  = models.TextField(max_length=2000)
 
 
