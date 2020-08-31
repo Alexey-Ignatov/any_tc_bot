@@ -31,7 +31,7 @@ class QteamBotConfig(AppConfig):
 
 
 
-            self.botid_to_botobj[bot.telegram_bot_id] =bot_obj
+        #    self.botid_to_botobj[bot.telegram_bot_id] =bot_obj
 
 
 
