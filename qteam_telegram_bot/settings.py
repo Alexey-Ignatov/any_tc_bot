@@ -82,14 +82,11 @@ WSGI_APPLICATION = 'qteam_telegram_bot.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'any_tc_bot_server',
-        'USER': 'any_tc_bot_user',
-        'PASSWORD': 'any_tc_bot_user_password',
-        'HOST': 'localhost',
-        'PORT': '',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': 'mydatabase',
     }
 }
+
 
 
 # Password validation
