@@ -90,8 +90,8 @@ def get_best_keyword_match(msg, kw_to_id, th):
 
 class TextProcesser:
     def predict(self, name):
-        th1 = .75
-        th2 = .1
+        th1 = .78
+        th2 = .15
         r = requests.get('http://127.0.0.1:8000/model/?format=json', data={'context': name})
         res_dict = r.json()['intent_list']
         most_rel_intents_ser = pd.Series(res_dict).sort_values(ascending=False)[:3]
@@ -568,6 +568,10 @@ class Command(BaseCommand):
                 org_id_to_pic_list[org.id] = plit.id
 
             back_btn = False
+            if len(org_list) == 1 :
+
+
+
             params = await self.get_orgs_tree_dialog_teleg_params(node_id_to_show,
                                                                   org_list,
                                                                   back_btn=back_btn,
@@ -597,11 +601,38 @@ class Command(BaseCommand):
                                       parse_mode=params['parse_mode'])
 
 
+
+        async def show_card(self, real_data, system_msg):
+            try:
+                if 'org_id' in real_data:
+                    org = await database_sync_to_async(Store.objects.get)(pk=real_data['org_id'], bot=self.acur_bot)
+            except Store.DoesNotExist:
+                return
+
+            photo_id = await org.get_plan_pic_file_id(self.dp.bot)
+            params = await self.get_card_message_telegram_req_params(org, bot_user)
+            media = [InputMediaPhoto(media=photo_id,
+                                     caption=params['text'][:MAX_CAPTION_SIZE],
+                                     parse_mode=params['parse_mode'], )]
+
+            if not real_data['plist']:
+                for photo_id in json.loads(org.pic_urls)[:8]:
+                    media.append(InputMediaPhoto(photo_id))
+            else:
+                plist = await database_sync_to_async(PictureList.objects.get)(pk=real_data['plist'])
+                for photo_id in json.loads(plist.json_data)[:8]:
+                    media.append(InputMediaPhoto(photo_id))
+
+            # await bot.send_media_group(message.from_user.id, media)
+            await system_msg.answer_media_group(media)
+
+
+
+
         @self.dp.callback_query_handler()
         async def keyboard_callback_handler(callback: CallbackQuery):
             data = callback.data
             real_data = json.loads(data)
-            #print('real_data', real_data)
 
             bot_user = await self.get_bot_user(callback.from_user)
             await database_sync_to_async(bot_user.upd_last_active)()
@@ -614,46 +645,15 @@ class Command(BaseCommand):
 
             if real_data['type'] == 'dialog':
                 node_id = real_data['node_id']
-                #print('dest_node_id_from_btn_handler')
                 params =await self.get_orgs_tree_dialog_teleg_params(node_id)
-                #print('after get_orgs_tree_dialog_teleg_params')
 
                 await callback.message.edit_text(params['text'],
                                         reply_markup=params['reply_markup'],
                                         parse_mode=params['parse_mode'])
 
+
             if real_data['type'] in ['show_org'] and 'org_id' in real_data:
-                    try:
-                        if 'org_id' in real_data:
-                            org = await database_sync_to_async(Store.objects.get)(pk=real_data['org_id'], bot=self.acur_bot)
-                    except Store.DoesNotExist:
-                        return
-
-                    #token = await database_sync_to_async(org.get_token)()
-                    #print('token',token )
-                    photo_id = await org.get_plan_pic_file_id(self.dp.bot)
-
-                    params = await self.get_card_message_telegram_req_params(org, bot_user)
-                    #await callback.message.answer_photo(
-                    #                       photo=photo_id,
-                    #                       caption=params['text'][:MAX_CAPTION_SIZE],
-                    #                       parse_mode=params['parse_mode'],
-                    #                       reply_markup=params['reply_markup'])
-                    media = [InputMediaPhoto(media=photo_id,
-                                             caption=params['text'][:MAX_CAPTION_SIZE],
-                                             parse_mode=params['parse_mode'],)]
-
-                    if not real_data['plist']:
-                        for photo_id in json.loads(org.pic_urls)[:8]:
-                            media.append(InputMediaPhoto(photo_id))
-                    else:
-                        plist = await database_sync_to_async(PictureList.objects.get)(pk=real_data['plist'])
-                        for photo_id in json.loads(plist.json_data)[:8]:
-                            media.append(InputMediaPhoto(photo_id))
-                    
-                    # await bot.send_media_group(message.from_user.id, media)
-                    await callback.message.answer_media_group(media)
-
+                await self.show_card(real_data, callback.message)
 
 
 
