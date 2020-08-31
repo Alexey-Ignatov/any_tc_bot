@@ -131,13 +131,16 @@ class Command(BaseCommand):
                     floor=str(row['floor']),
                     phone_number='',#row['phone'] if str(row['phone']) != 'nan' else '',
                     pic_urls=row['photos'] if str(row['photos']) != 'nan' else json.dumps([]),
-                    plan_image=row['map'],
+                    plan_image=row['map_new'],
                     store_image=row['store'],
                     bot=self.acur_bot,
                     is_availible_for_subscription=is_avail_for_subscr,
                     cat=store_cat,
                     be_in_link = row['be_in_link'],
-                    is_top = row['top']=='top')
+                    is_top = row['top']=='top',
+                    intent_list=row['intent_new'],
+                    assort_kw =row['assort_kw']
+            )
 
             await store.get_plan_pic_file_id(self.dp.bot)
             #store.get_store_pic_file_id(context.bot)
