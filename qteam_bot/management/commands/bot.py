@@ -320,7 +320,6 @@ class Command(BaseCommand):
 
         lines_list = []
         for i, org in enumerate(stores_to_show):
-            cur_title = org.get_inlist_descr()
             cur_title = org_id_to_some_data['short_descr'][org.id]
             lines_list += ["{}. {}".format(i + 1, cur_title)]
         text += '\n'
@@ -604,6 +603,7 @@ class Command(BaseCommand):
             org_id_to_pic_list = {}
 
             for org in org_list:
+                print(org.id ,'org.id')
                 if org_id_to_props[org.id]['mean_price']:
                     org_id_to_some_data[org.id]['short_descr'] = org.get_inlist_descr(
                         "(~{} руб.)".format(int(org_id_to_props[org.id]['mean_price'])))
