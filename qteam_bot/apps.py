@@ -17,17 +17,17 @@ class QteamBotConfig(AppConfig):
 
         self.botid_to_botobj = {}
         # intent_model
-        bots = AcurBot.objects.all()
-        for bot in bots:
-            request = Request(
-                connect_timeout=0.5,
-                read_timeout=1.0,
-            )
-            bot_obj = Bot(
-                request=request,
-                token=bot.token,
-                base_url=getattr(settings, 'PROXY_URL', None),
-            )
+        #bots = AcurBot.objects.all()
+        #for bot in bots:
+        #    request = Request(
+        #        connect_timeout=0.5,
+        #        read_timeout=1.0,
+        #    )
+        #    bot_obj = Bot(
+        #        request=request,
+        #        token=bot.token,
+        #        base_url=getattr(settings, 'PROXY_URL', None),
+        #    )
 
 
 
