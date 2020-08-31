@@ -648,7 +648,7 @@ class Command(BaseCommand):
 
             intent_list = []
             node_id_to_show = -1
-            org_list, org_id_to_props = await self.text_bot.process(message.text)
+            org_list, org_id_to_props = self.text_bot.process(message.text)
             org_id_to_text = {}
             org_id_to_pic_list = {}
 
