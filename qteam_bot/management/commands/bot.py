@@ -320,7 +320,7 @@ class Command(BaseCommand):
 
         lines_list = []
         for i, org in enumerate(stores_to_show):
-            cur_title = org_id_to_some_data['short_descr'][org.id]
+            cur_title = org_id_to_some_data[org.id]['short_descr'][org.id]
             lines_list += ["{}. {}".format(i + 1, cur_title)]
         text += '\n'
         text += ('\n').join(lines_list)
@@ -329,7 +329,7 @@ class Command(BaseCommand):
         for i, org in enumerate(stores_to_show):
             callback_dict = {'type': 'show_org',
                              'org_id': org.id,
-                             'plist': org_id_to_pic_list[org.id] if org.id in org_id_to_pic_list else ''}
+                             'plist': org_id_to_some_data[org.id]['plit_id']}
             btn = InlineKeyboardButton(text=str(i + 1),
                                        callback_data=json.dumps(callback_dict))
             keyboard_line_list.append(btn)
