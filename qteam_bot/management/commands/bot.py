@@ -319,15 +319,17 @@ class Command(BaseCommand):
         media = [InputMediaPhoto(media=photo_id,
                                  caption=org.get_card_text()[:MAX_CAPTION_SIZE],
                                  parse_mode='Markdown', )]
-
-        plist = await database_sync_to_async(PictureList.objects.get)(pk=plist_id)
-        if json.loads(plist.json_data):
-            for photo_id in json.loads(plist.json_data)[:8]:
+        try:
+            plist = await database_sync_to_async(PictureList.objects.get)(pk=plist_id)
+            pics_list = json.loads(plist.json_data)
+        except PictureList.DoesNotExist:
+            pics_list = []
+        if pics_list:
+            for photo_id in pics_list[:8]:
                 media.append(InputMediaPhoto(photo_id))
         else:
             for photo_id in json.loads(org.pic_urls)[:8]:
                 media.append(InputMediaPhoto(photo_id))
-
         # await bot.send_media_group(message.from_user.id, media)
         await system_msg.answer_media_group(media)
         
@@ -484,6 +486,10 @@ class Command(BaseCommand):
 
             if len(org_id_to_some_data)==1:
                 await self.show_card(message,org.id,org_id_to_some_data[org.id]['plit_id'])
+                return
+            if not org_id_to_some_data:
+                card = await database_sync_to_async(Store.objects.get)(intent_new='["no_answer"]',bot=self.acur_bot)
+                await self.show_card(message, card.id, -1)
                 return
             await self.send_store_list(message, org_id_to_some_data, intent_list)
 
