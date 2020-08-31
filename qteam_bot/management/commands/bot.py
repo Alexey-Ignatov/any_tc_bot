@@ -189,8 +189,7 @@ class TextProcesser:
         print(intent_list)
         intent_org_list = [store for store in self.stores_list if set(json.loads(store.intent_list)) & set(intent_list)]
         for org in intent_org_list:
-            ind_relevance[org.id] += sum([v for k, v in intent_list.items() if k in set(json.loads(org.intent_list))],
-                                         0)
+            ind_relevance[org.id] += sum([v for k, v in intent_list.items() if k in set(json.loads(org.intent_list))],0)
             if org.is_top:
                 ind_relevance[org.id] += 50
 
@@ -202,19 +201,12 @@ class TextProcesser:
 
         for org in stores:
             if not org.id in org_id_to_props:
-                org_id_to_props[org.id] = {'mean_price': np.nan, 'example_pics': []}
+                org_id_to_props[org.id] = {'mean_price': None, 'example_pics': []}
 
         if not stores_inds_order and not final_try:
             return self.process(spellcheck(msg), final_try=True)
         return stores_inds_order, org_id_to_props
 
-        if not stores:
-            # if final_try:
-
-            return -2, [], ['ukn']
-            # else:
-            # self.prebot(spellcheck(msg), final_try=True)
-        return -1, stores, list(intent_list.values())
 
 
 class Command(BaseCommand):
@@ -274,8 +266,6 @@ class Command(BaseCommand):
             )
 
             await store.get_plan_pic_file_id(self.dp.bot)
-            #store.get_store_pic_file_id(context.bot)
-
             await asyncio.sleep(.5)
 
         stores_list = await database_sync_to_async(Store.objects.filter)(bot=self.acur_bot)
@@ -311,43 +301,6 @@ class Command(BaseCommand):
         self.text_bot = text_bot
             # context.bot.send_media_group(chat_id=update.effective_chat.id, media=[inp_photo, inp_photo2])
 
-    async def fing_prod_props(self,msg):
-        prod_type_to_ind = {kw: [i] for i, kw in enumerate(self.wear_kws)}
-        ind_to_prod_type = {i: kw for i, kw in enumerate(self.wear_kws)}
-        prod_type_inds = get_best_keyword_match(msg, prod_type_to_ind, 90)
-        if not prod_type_inds:
-            prod_type_inds = get_best_keyword_match(extr_nouns(msg), prod_type_to_ind, 90)
-
-        if not prod_type_inds:
-            return [], {}
-        prod_type = ind_to_prod_type[prod_type_inds[0]]
-
-        cur_prod_df = self.prods_df[(self.prods_df.name.str.lower().str.contains(prod_type))]
-        be_in_url_to_inds = cur_prod_df.groupby('store_url').groups
-        be_in_url_and_prods = []
-        be_in_url_and_props = []
-        for url in cur_prod_df.store_url.value_counts().index:
-            ind_list = be_in_url_to_inds[url]
-            be_in_url_and_prods += [(url, cur_prod_df.loc[ind_list, :].reset_index() \
-                [['name', 'picture', 'price']].T.to_dict().values())]
-
-            cur_props = {}
-            cur_props['mean_price'] = np.mean([prod['price'] for prod in be_in_url_and_prods[-1][1]])
-            cur_props['example_pics'] = sorted([prod['picture'] for prod in be_in_url_and_prods[-1][1]])[:9]
-            be_in_url_and_props.append((url, cur_props))
-
-        store_id_to_props = {}
-        res_stores = []
-        for be_in_link, props in be_in_url_and_props:
-            stores = await database_sync_to_async(Store.objects.filter)(be_in_link=be_in_link,
-                                                                        bot=self.acur_bot)
-            stores = await sync_to_async(list)(stores)
-            if not stores:
-                continue
-            res_stores.append(stores[0])
-            store_id_to_props[stores[0].id] = props
-
-        return res_stores, store_id_to_props
 
 
     async def get_orgs_tree_dialog_teleg_params(self,
@@ -662,14 +615,6 @@ class Command(BaseCommand):
                 plit = await database_sync_to_async(PictureList.objects.create)(json_data=json.dumps(pic_list))
                 org_id_to_pic_list[org.id] = plit.id
 
-            #print(org_id_to_props)
-            #if not org_list:
-            #    node_id_to_show, org_list, intent_list = await self.prebot(message.text)
-            #    org_id_to_text = {}
-            #    org_id_to_pic_list = {}
-            #if intent_list and intent_list[0] == 'ukn':
-            #    node_id_to_show, org_list, intent_list = -3,[],[]
-            #back_btn = node_id_to_show != -1
             back_btn = False
             params = await self.get_orgs_tree_dialog_teleg_params(node_id_to_show,
                                                                   org_list,
