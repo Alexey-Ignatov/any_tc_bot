@@ -320,9 +320,7 @@ class Command(BaseCommand):
                                  caption=org.get_card_text()[:MAX_CAPTION_SIZE],
                                  parse_mode='Markdown', )]
 
-        plist = await database_sync_to_async(PictureList.objects.get)(plist_id)
-
-        plist = await database_sync_to_async(PictureList.objects.get)(pk=real_data['plist'])
+        plist = await database_sync_to_async(PictureList.objects.get)(pk=plist_id)
         if json.loads(plist.json_data):
             for photo_id in json.loads(plist.json_data)[:8]:
                 media.append(InputMediaPhoto(photo_id))
