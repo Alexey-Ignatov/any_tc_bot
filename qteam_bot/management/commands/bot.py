@@ -242,7 +242,7 @@ class Command(BaseCommand):
         await database_sync_to_async(old_orgs.delete)()
         df = pd.read_pickle(self.bot_config['load_data_pickle_path'])
         #print('after pickle')
-        for ind, row in df.iloc[:5].iterrows():
+        for ind, row in df.iterrows():
             #print(ind)
             try:
                 store_cat = await database_sync_to_async(StoreCategory.objects.get)(title=row['intent'])
