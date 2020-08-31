@@ -276,33 +276,33 @@ class Command(BaseCommand):
 
         text_bot.stores_list = stores_list
 
-        #row_list = []
-        #for cur_org in text_bot.stores_list:
-        #    for kw in cur_org.assort_kw.split(','):
-        #        if not kw.strip():
-        #            continue
-        #        row_template = pd.Series(np.nan, index=prods_df.iloc[0, :].index)
-        #        row_template['name'] = kw.strip()
-        #        row_template['search_kw'] = [kw.strip()]
-        #        row_template['store_url'] = cur_org.be_in_link
-        #        row_list.append(row_template)
+        row_list = []
+        for cur_org in text_bot.stores_list:
+            for kw in cur_org.assort_kw.split(','):
+                if not kw.strip():
+                    continue
+                row_template = pd.Series(np.nan, index=prods_df.iloc[0, :].index)
+                row_template['name'] = kw.strip()
+                row_template['search_kw'] = [kw.strip()]
+                row_template['store_url'] = cur_org.be_in_link
+                row_list.append(row_template)
 
-        #add_prods_df = pd.DataFrame(row_list)
-        #prods_df_enriched = prods_df.append(add_prods_df).reset_index().iloc[:, 1:]
+        add_prods_df = pd.DataFrame(row_list)
+        prods_df_enriched = prods_df.append(add_prods_df).reset_index().iloc[:, 1:]
 
-        #prod_name_to_indlist = defaultdict(list)
-        #for ind, row in prods_df_enriched.iterrows():
-        #    for kw in row['search_kw']:
-        #        prod_name_to_indlist[kw].append(ind)
+        prod_name_to_indlist = defaultdict(list)
+        for ind, row in prods_df_enriched.iterrows():
+            for kw in row['search_kw']:
+                prod_name_to_indlist[kw].append(ind)
 
-        #text_bot.prod_name_to_indlist = prod_name_to_indlist
-        #text_bot.prods_df_enriched = prods_df_enriched
-        #import pickle
-        #pickle.dump(prod_name_to_indlist, open('prod_name_to_indlist.pickle', 'wb'))
-        #pickle.dump(prods_df_enriched, open('prods_df_enriched.pickle', 'wb'))
+        text_bot.prod_name_to_indlist = prod_name_to_indlist
+        text_bot.prods_df_enriched = prods_df_enriched
+        import pickle
+        pickle.dump(prod_name_to_indlist, open('prod_name_to_indlist.pickle', 'wb'))
+        pickle.dump(prods_df_enriched, open('prods_df_enriched.pickle', 'wb'))
 
         text_bot.prod_name_to_indlist = pd.read_pickle('prod_name_to_indlist.pickle')
-        text_bot.prods_df_enriched = pd.read_pickle('prod_name_to_indlist.pickle')
+        text_bot.prods_df_enriched = pd.read_pickle('prods_df_enriched.pickle')
         text_bot.in_2_label = pd.read_pickle('in_2_label.pkl')
 
         self.text_bot = text_bot
