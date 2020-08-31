@@ -316,7 +316,7 @@ class Command(BaseCommand):
         stores_to_show = await database_sync_to_async(Store.objects.filter)(pk__in = org_id_to_some_data.keys(),
                                                                         bot=self.acur_bot)
 
-        stores_to_show = await sync_to_async(list)(intent_res)
+        stores_to_show = await sync_to_async(list)(stores_to_show)
 
         lines_list = []
         for i, org in enumerate(stores_to_show):
