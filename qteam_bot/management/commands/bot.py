@@ -308,38 +308,36 @@ class Command(BaseCommand):
         self.text_bot = text_bot
             # context.bot.send_media_group(chat_id=update.effective_chat.id, media=[inp_photo, inp_photo2])
 
-    async def show_card(self, real_data, system_msg):
+    async def show_card(self, org_id,plist_id, system_msg):
         try:
-            if 'org_id' in real_data:
-                org = await database_sync_to_async(Store.objects.get)(pk=real_data['org_id'], bot=self.acur_bot)
+            org = await database_sync_to_async(Store.objects.get)(pk=org_id, bot=self.acur_bot)
         except Store.DoesNotExist:
             return
         bot_user = await self.get_bot_user(system_msg.from_user)
         photo_id = await org.get_plan_pic_file_id(self.dp.bot)
-        params = await self.get_card_message_telegram_req_params(org, bot_user)
-        media = [InputMediaPhoto(media=photo_id,
-                                 caption=params['text'][:MAX_CAPTION_SIZE],
-                                 parse_mode=params['parse_mode'], )]
 
-        if not real_data['plist']:
-            for photo_id in json.loads(org.pic_urls)[:8]:
+        media = [InputMediaPhoto(media=photo_id,
+                                 caption=org.get_card_text()[:MAX_CAPTION_SIZE],
+                                 parse_mode='Markdown', )]
+
+        plist = await database_sync_to_async(PictureList.objects.get)(plist_id)
+
+        plist = await database_sync_to_async(PictureList.objects.get)(pk=real_data['plist'])
+        if json.loads(plist.json_data):
+            for photo_id in json.loads(plist.json_data)[:8]:
                 media.append(InputMediaPhoto(photo_id))
         else:
-            plist = await database_sync_to_async(PictureList.objects.get)(pk=real_data['plist'])
-            for photo_id in json.loads(plist.json_data)[:8]:
+            for photo_id in json.loads(org.pic_urls)[:8]:
                 media.append(InputMediaPhoto(photo_id))
 
         # await bot.send_media_group(message.from_user.id, media)
         await system_msg.answer_media_group(media)
         
     async def send_store_list(self,message, org_id_to_some_data, intent_list):
-
         text = "Возможно, вам подойдет:"
-
         keyboard = InlineKeyboardMarkup()
         stores_to_show = await database_sync_to_async(Store.objects.filter)(pk__in = org_id_to_some_data.keys(),
                                                                         bot=self.acur_bot)
-
         stores_to_show = await sync_to_async(list)(stores_to_show)
 
         lines_list = []
@@ -363,83 +361,20 @@ class Command(BaseCommand):
         if keyboard_line_list:
             keyboard.row(*keyboard_line_list)
 
-
-
         for intent_type in intent_list:
             if intent_type not in self.intent_to_name:
                 continue
             btn_prev = InlineKeyboardButton(text="Все из категории " + self.intent_to_name[intent_type],
                                             callback_data=json.dumps(
-                                                {'node_id': self.intent_to_node[intent_type],
+                                                {'iten': intent_type,
                                                  'type': 'show_cat'}))
             keyboard.row(btn_prev)
-
-
         btn_prev = InlineKeyboardButton(text="Связаться с оператором",
                                         callback_data=json.dumps({'type': 'operator'}))
-
         keyboard.row(btn_prev)
-
         await message.answer(text,
                             parse_mode="Markdown",
                              reply_markup=keyboard)
-
-
-
-    async def get_card_message_telegram_req_params(self, org, bot_user):
-        text = org.get_card_text()
-
-        keyboard = InlineKeyboardMarkup()
-        return {"text": text,
-                "parse_mode": "Markdown",
-                "reply_markup": keyboard}
-
-        """
-        if not org.is_availible_for_subscription:
-            return {"text": text,
-                    "parse_mode": "Markdown",
-                    "reply_markup": InlineKeyboardMarkup(keyboard)}
-
-        #print('before subscr get')
-        
-        subscription = await database_sync_to_async(OrgSubscription.objects.filter)(bot_user=bot_user, org=org)
-        subscription = await sync_to_async(list)(subscription)
-        if not subscription:
-            subscribe_btn = InlineKeyboardButton(text="Подписаться", callback_data=json.dumps({'org_id': org.id, 'type': 'subscr'}))
-        else:
-            subscribe_btn = InlineKeyboardButton(text="Отписаться",
-                                                 callback_data=json.dumps({'org_id': org.id, 'type': 'unsubscr'}))
-        keyboard.row(subscribe_btn)
-        """
-
-
-
-
-        async def org_find_name_keywords(self, query):
-            kw_to_ind = defaultdict(list)
-            stores_list = await database_sync_to_async(Store.objects.filter)(bot = self.acur_bot)
-            stores_list = await sync_to_async(list)(stores_list)
-            for store in stores_list:
-                if str(store.keywords) in ['nan', '']:
-                    continue
-                for kw in store.keywords.split(','):
-                    kw_to_ind[kw.strip().lower()] += [store.id]
-
-            brand_name_to_id = defaultdict(list)
-            for store in stores_list:
-                mag_short_name = store.brand.strip().lower()
-                brand_name_to_id[mag_short_name] += [store.id]
-
-                brand_name_to_id[cyrtranslit.to_cyrillic(mag_short_name, 'ru')] += [store.id]
-
-                if str(store.alter_names) in ['nan', '']:
-                    continue
-                for kw in store.alter_names.split(','):
-                    brand_name_to_id[kw.strip().lower()] += [store.id]
-
-
-        return get_best_keyword_match(query, brand_name_to_id, 90)+get_best_keyword_match(query, kw_to_ind, 90)
-
 
 
 
@@ -464,11 +399,7 @@ class Command(BaseCommand):
 
         # Configure logging
         logging.basicConfig(level=logging.DEBUG)
-
-        # Initialize bot and dispatcher
         bot = Bot(token=self.TOKEN)
-        #async_to_sync(bot.send_message)(646380871,text='хули надо?')
-
         dp = Dispatcher(bot)
         self.dp=dp
 
@@ -485,8 +416,6 @@ class Command(BaseCommand):
                 token=self.TOKEN, defaults=bot_defaults
             )
             await self.init_text_bot()
-
-
 
 
         @self.dp.message_handler(commands=['start'])
@@ -516,7 +445,6 @@ class Command(BaseCommand):
                                        parse_mode="Markdown")
 
 
-
         @self.dp.message_handler()
         async def msg_handler(message: types.Message):
             bot_user = await self.get_bot_user(message.from_user)
@@ -543,9 +471,8 @@ class Command(BaseCommand):
 
 
             org_list, org_id_to_props, intent_list = self.text_bot.process(message.text)
-            org_id_to_some_data = defaultdict(dict)
 
-            org_id_to_pic_list = {}
+            org_id_to_some_data = defaultdict(dict)
             for org in org_list:
                 print(org.id ,'org.id')
                 if org_id_to_props[org.id]['mean_price']:
@@ -557,11 +484,9 @@ class Command(BaseCommand):
                 plit = await database_sync_to_async(PictureList.objects.create)(json_data=json.dumps(pic_list))
                 org_id_to_some_data[org.id]['plit_id'] = plit.id
 
+            if len(org_id_to_some_data)==1:
+
             await self.send_store_list(message, org_id_to_some_data, intent_list)
-
-
-
-
 
 
 
@@ -581,8 +506,7 @@ class Command(BaseCommand):
 
 
             if real_data['type'] in ['show_org'] and 'org_id' in real_data:
-                await self.show_card(real_data, callback.message)
-
+                await self.show_card(real_data['org_id'],real_data['plist'], callback.message)
 
 
 
