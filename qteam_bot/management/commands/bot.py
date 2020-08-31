@@ -96,10 +96,10 @@ class TextProcesser:
         res_dict = r.json()['intent_list']
         most_rel_intents_ser = pd.Series(res_dict).sort_values(ascending=False)[:3]
         if most_rel_intents_ser.sum() < th1:
-            return ['ukn']
+            return {'ukn':0.}
         if (most_rel_intents_ser > th2).any():
             return most_rel_intents_ser[most_rel_intents_ser > th2].to_dict()
-        return ['ukn']
+        return {'ukn':0.}
 
     def org_find_name_keywords(self, query):
         kw_to_ind = defaultdict(list)
