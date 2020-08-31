@@ -238,6 +238,8 @@ class Command(BaseCommand):
     async def load_mags(self):
 
         #print('before_pickle')
+        old_orgs = await database_sync_to_async(Store.objects.filter)(bot=self.acur_bot)
+        await database_sync_to_async(old_orgs.delete)()
         df = pd.read_pickle(self.bot_config['load_data_pickle_path'])
         #print('after pickle')
         for ind, row in df.iloc[:5].iterrows():
