@@ -29,26 +29,27 @@ import cyrtranslit
 MAX_CAPTION_SIZE = 1000
 
 
+def extr_nouns(expl_str):
+    if not expl_str:
+        return expl_str
+    r = requests.post('http://localhost:5000/model', data=json.dumps({'x': [expl_str]}),
+                      headers={"content-type": "application/json", 'accept': 'application/json'})
+    synt_res = r.json()[0][0]
+    reg_nouns = [l.split('\t')[2] for l in synt_res.split('\n')[:-1] if l.split('\t')[3] in ['NOUN']]
+    return ' '.join(reg_nouns)
 
+
+def spellcheck(text):
+    params = {'text': text}
+    r = requests.get("https://speller.yandex.net/services/spellservice.json/checkText", params=params)
+    if r.ok and r.json():
+        return text.replace(r.json()[0]['word'], r.json()[0]['s'][0])
+    return text
 
 
 def norm_name(name):
     name_regex = '[a-zA-Zа-яА-Я]+|\d+'
     return regexp_tokenize((name).lower(), name_regex)
-
-def spellcheck(text):
-    params = {'text': text}
-    r =requests.get("https://speller.yandex.net/services/spellservice.json/checkText", params=params)
-    if r.ok and r.json():
-        return text.replace(r.json()[0]['word'], r.json()[0]['s'][0])
-    return text
-
-def extr_nouns(expl_str):
-    r = requests.post('http://localhost:5000/model', data=json.dumps({'x':[expl_str]}),
-                      headers={"content-type":"application/json", 'accept':'application/json'})
-    synt_res = r.json()[0][0]
-    reg_nouns = [l.split('\t')[2] for l in synt_res.split('\n')[:-1] if l.split('\t')[3] in ['NOUN']]
-    return ' '.join(reg_nouns)
 
 
 def get_n_grams(name, ngram_len):
@@ -86,6 +87,134 @@ def get_best_keyword_match(msg, kw_to_id, th):
         res_list += kw_to_id[name]
     return res_list
 
+
+class TextProcesser:
+    def predict(self, name):
+        th1 = .75
+        th2 = .1
+        r = requests.get('http://127.0.0.1:8000/model/?format=json', data={'context': name})
+        res_dict = r.json()['intent_list']
+        most_rel_intents_ser = pd.Series(res_dict).sort_values(ascending=False)[:3]
+        if most_rel_intents_ser.sum() < th1:
+            return ['ukn']
+        if (most_rel_intents_ser > th2).any():
+            return most_rel_intents_ser[most_rel_intents_ser > th2].to_dict()
+        return ['ukn']
+
+    def org_find_name_keywords(self, query):
+        kw_to_ind = defaultdict(list)
+
+        for store in self.stores_list:
+            if str(store.keywords) in ['nan', '']:
+                continue
+            for kw in store.keywords.split(','):
+                kw_to_ind[kw.strip().lower()] += [store.id]
+
+        brand_name_to_id = defaultdict(list)
+        for store in self.stores_list:
+            mag_short_name = store.brand.strip().lower()
+            brand_name_to_id[mag_short_name] += [store.id]
+
+            brand_name_to_id[cyrtranslit.to_cyrillic(mag_short_name, 'ru')] += [store.id]
+
+            if str(store.alter_names) in ['nan', '']:
+                continue
+            for kw in store.alter_names.split(','):
+                brand_name_to_id[kw.strip().lower()] += [store.id]
+
+        return get_best_keyword_match(query, brand_name_to_id, 90), get_best_keyword_match(query, kw_to_ind, 90)
+
+    def fing_prod_props(self, msg):
+        prod_type_inds = sum([self.prod_name_to_indlist[w] for w in norm_name(msg) + extr_nouns(msg).split(' ') if
+                              w in self.prod_name_to_indlist], [])
+
+        if not prod_type_inds:
+            return [], {}
+
+        cur_prod_df = self.prods_df_enriched[self.prods_df_enriched.index.isin(prod_type_inds)]
+        print(cur_prod_df)
+        be_in_url_to_inds = cur_prod_df.groupby('store_url').groups
+        be_in_url_and_prods = []
+        be_in_url_and_props = []
+        for url in cur_prod_df.store_url.value_counts().index:
+            ind_list = be_in_url_to_inds[url]
+            prods_data = cur_prod_df.loc[ind_list, :].reset_index()[['name', 'picture', 'price']].T.to_dict().values()
+            be_in_url_and_prods += [(url, prods_data)]
+
+            cur_props = {}
+            mean_list = [prod['price'] for prod in prods_data if str(prod['price']) != 'nan']
+            cur_props['mean_price'] = np.mean(mean_list) if mean_list else None
+            cur_props['example_pics'] = sorted(
+                [prod['picture'] for prod in prods_data if str(prod['picture']) != 'nan'])[:9]
+            be_in_url_and_props.append((url, cur_props))
+
+        store_id_to_props = {}
+        res_stores = []
+        for be_in_link, props in be_in_url_and_props:
+            stores = [store for store in self.stores_list if store.be_in_link == be_in_link]
+            if not stores:
+                continue
+            res_stores.append(stores[0])
+            store_id_to_props[stores[0].id] = props
+
+        return res_stores, store_id_to_props
+
+    def process(self, msg, final_try=False):
+        print(msg)
+        name_result_list, kw_result_list = self.org_find_name_keywords(msg)
+        name_result_list_extr, kw_result_list_extr = self.org_find_name_keywords(extr_nouns(msg))
+
+        ind_to_store_dict = {store.id: store for store in self.stores_list}
+
+        name_result_list = list(map(ind_to_store_dict.__getitem__, name_result_list + name_result_list_extr))
+        kw_result_list = list(map(ind_to_store_dict.__getitem__, kw_result_list + kw_result_list_extr))
+
+        ind_relevance = defaultdict(int)
+        for org_id in set(name_result_list):
+            ind_relevance[org_id.id] += 10000
+
+        for org_id in set(kw_result_list):
+            ind_relevance[org_id.id] += 1000
+
+        prod_org_list, org_id_to_props = self.fing_prod_props(msg)
+        for org in prod_org_list:
+            ind_relevance[org.id] += 100
+
+        print('prod_org_list', [org.title for org in prod_org_list])
+        print('kw name', [org.title for org in name_result_list + kw_result_list])
+
+        # r = requests.get('http://127.0.0.1:8000/model/?format=json', data={'context': msg})
+        intent_list = self.predict(msg)
+
+        print(intent_list)
+        intent_org_list = [store for store in self.stores_list if set(json.loads(store.intent_list)) & set(intent_list)]
+        for org in intent_org_list:
+            ind_relevance[org.id] += sum([v for k, v in intent_list.items() if k in set(json.loads(org.intent_list))],
+                                         0)
+            if org.is_top:
+                ind_relevance[org.id] += 50
+
+        print('intent_org_list', [org.title for org in intent_org_list])
+        stores = name_result_list + kw_result_list + prod_org_list + intent_org_list
+        stores = list(set(stores))
+
+        stores_inds_order = sorted(stores, key=lambda x: ind_relevance[x.id], reverse=True)[:15]
+
+        for org in stores:
+            if not org.id in org_id_to_props:
+                org_id_to_props[org.id] = {'mean_price': np.nan, 'example_pics': []}
+
+        if not stores_inds_order and not final_try:
+            return self.process(spellcheck(msg), final_try=True)
+        return stores_inds_order, org_id_to_props
+
+        if not stores:
+            # if final_try:
+
+            return -2, [], ['ukn']
+            # else:
+            # self.prebot(spellcheck(msg), final_try=True)
+        return -1, stores, list(intent_list.values())
 
 
 class Command(BaseCommand):
@@ -136,7 +265,7 @@ class Command(BaseCommand):
                     bot=self.acur_bot,
                     is_availible_for_subscription=is_avail_for_subscr,
                     cat=store_cat,
-                    be_in_link = row['be_in_link'],
+                    be_in_link = row['be_in_link'] if row['be_in_link']!='no_link' else row['input_url'],
                     is_top = row['top']=='top',
                     intent_list=row['intent_new'],
                     assort_kw =row['assort_kw']
@@ -145,6 +274,35 @@ class Command(BaseCommand):
             await store.get_plan_pic_file_id(self.dp.bot)
             #store.get_store_pic_file_id(context.bot)
 
+            text_bot = TextProcesser()
+            prods_df = pd.read_pickle('new_prods_df.pickle')
+
+            text_bot.stores_list = stores_list
+
+            row_list = []
+            for cur_org in tqdm(a.stores_list):
+                for kw in cur_org.assort_kw.split(','):
+                    if not kw.strip():
+                        continue
+                    row_template = pd.Series(np.nan, index=prods_df.iloc[0, :].index)
+                    row_template['name'] = kw.strip()
+                    row_template['search_kw'] = [kw.strip()]
+                    row_template['store_url'] = cur_org.be_in_link
+                    row_list.append(row_template)
+
+            add_prods_df = pd.DataFrame(row_list)
+            prods_df_enriched = prods_df.append(add_prods_df).reset_index().iloc[:, 1:]
+
+            prod_name_to_indlist = defaultdict(list)
+            for ind, row in prods_df_enriched.iterrows():
+                for kw in row['search_kw']:
+                    prod_name_to_indlist[kw].append(ind)
+
+            text_bot.prod_name_to_indlist = prod_name_to_indlist
+            text_bot.prods_df_enriched = prods_df_enriched
+            text_bot.in_2_label = pd.read_pickle('in_2_label.pkl')
+
+            self.text_bot = text_bot
             # context.bot.send_media_group(chat_id=update.effective_chat.id, media=[inp_photo, inp_photo2])
 
             await asyncio.sleep(.5)
