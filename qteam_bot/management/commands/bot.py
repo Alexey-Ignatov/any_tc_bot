@@ -337,7 +337,7 @@ class Command(BaseCommand):
         text = "Возможно, вам подойдет:"
         keyboard = InlineKeyboardMarkup()
 
-        
+        org_id_list = list(org_id_to_some_data.keys())
         org_before_sorting = [(cur_org, org_id_list.index(cur_org.id)) for cur_org in self.text_bot.stores_list if
                               cur_org.id in org_id_to_some_data.keys()]
         stores_to_show = sorted(org_before_sorting, key=lambda x: x[1])
