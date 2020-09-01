@@ -341,7 +341,7 @@ class Command(BaseCommand):
         org_before_sorting = [(cur_org, org_id_list.index(cur_org.id)) for cur_org in self.text_bot.stores_list if
                               cur_org.id in org_id_to_some_data.keys()]
         stores_to_show = sorted(org_before_sorting, key=lambda x: x[1])
-        stores_to_show = [obj.id for obj, ind in stores_to_show]
+        stores_to_show = [obj for obj, ind in stores_to_show]
 
         lines_list = []
         for i, org in enumerate(stores_to_show):
