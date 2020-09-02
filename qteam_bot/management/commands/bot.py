@@ -96,10 +96,10 @@ class TextProcesser:
         res_dict = r.json()['intent_list']
         most_rel_intents_ser = pd.Series(res_dict).sort_values(ascending=False)[:3]
         if most_rel_intents_ser.sum() < th1:
-            return {'ukn':0.}
+            return {'ukn': 0.}
         if (most_rel_intents_ser > th2).any():
             return most_rel_intents_ser[most_rel_intents_ser > th2].to_dict()
-        return {'ukn':0.}
+        return {'ukn': 0.}
 
     def org_find_name_keywords(self, query):
         kw_to_ind = defaultdict(list)
@@ -177,8 +177,11 @@ class TextProcesser:
             ind_relevance[org_id.id] += 1000
 
         prod_org_list, org_id_to_props = self.fing_prod_props(msg)
+
         for org in prod_org_list:
             ind_relevance[org.id] += 100
+            if org_id_to_props[org.id]['mean_price']:
+                ind_relevance[org.id] += 0.0001
 
         print('prod_org_list', [org.title for org in prod_org_list])
         print('kw name', [org.title for org in name_result_list + kw_result_list])
@@ -189,12 +192,15 @@ class TextProcesser:
         print(intent_list)
         intent_org_list = [store for store in self.stores_list if set(json.loads(store.intent_list)) & set(intent_list)]
         for org in intent_org_list:
-            ind_relevance[org.id] += sum([v for k, v in intent_list.items() if k in set(json.loads(org.intent_list))],0)
+            ind_relevance[org.id] += sum([v for k, v in intent_list.items() if k in set(json.loads(org.intent_list))],
+                                         0)
             if org.is_top:
                 ind_relevance[org.id] += 50
 
         print('intent_org_list', [org.title for org in intent_org_list])
-        stores = name_result_list + kw_result_list + prod_org_list + intent_org_list
+
+        name_kw_stores = name_result_list + kw_result_list
+        stores = name_kw_stores if name_kw_stores else prod_org_list + intent_org_list
         stores = list(set(stores))
 
         stores_inds_order = sorted(stores, key=lambda x: ind_relevance[x.id], reverse=True)[:15]
