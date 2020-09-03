@@ -379,7 +379,7 @@ class Command(BaseCommand):
                                                  'type': 'show_cat'}))
             keyboard.row(btn_prev)
         btn_prev = InlineKeyboardButton(text="Связаться с оператором",
-                                        callback_data=json.dumps({'type': 'operator'}))
+                                        url='t.me/turbo_indus')
         keyboard.row(btn_prev)
         await message.answer(text,
                             parse_mode="Markdown",
