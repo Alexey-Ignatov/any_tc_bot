@@ -35,7 +35,7 @@ def extr_nouns(expl_str):
     r = requests.post('http://localhost:5000/model', data=json.dumps({'x': [expl_str]}),
                       headers={"content-type": "application/json", 'accept': 'application/json'})
     synt_res = r.json()[0][0]
-    reg_nouns = [l.split('\t')[2] for l in synt_res.split('\n')[:-1] if l.split('\t')[3] in ['NOUN']]
+    reg_nouns = [l.split('\t')[2] for l in synt_res.split('\n')[:-1] if l.split('\t')[3] in ['ADJ', 'NOUN']]
     return ' '.join(reg_nouns)
 
 
@@ -161,8 +161,10 @@ class TextProcesser:
 
     def process(self, msg, final_try=False):
         print(msg)
+        extr_msg = extr_nouns(msg)
+        msg_tokens_list = norm_name("{} {}".format(extr_msg, msg))
         name_result_list, kw_result_list = self.org_find_name_keywords(msg)
-        name_result_list_extr, kw_result_list_extr = self.org_find_name_keywords(extr_nouns(msg))
+        name_result_list_extr, kw_result_list_extr = self.org_find_name_keywords(extr_msg)
 
         ind_to_store_dict = {store.id: store for store in self.stores_list}
 
@@ -201,6 +203,7 @@ class TextProcesser:
 
         name_kw_stores = name_result_list + kw_result_list
         stores = name_kw_stores if name_kw_stores else prod_org_list + intent_org_list
+        stores = [store for store in stores if not set(store.minus_words.split(',')) & set(msg_tokens_list)]
         stores = list(set(stores))
 
         stores_inds_order = sorted(stores, key=lambda x: ind_relevance[x.id], reverse=True)[:15]
@@ -267,7 +270,8 @@ class Command(BaseCommand):
                     be_in_link = row['be_in_link'] if row['be_in_link']!='no_link' else row['input_url'],
                     is_top = row['top']=='top',
                     intent_list=row['intent_new'],
-                    assort_kw =row['assort_kw']
+                    assort_kw =row['assort_kw'],
+                    minus_words=row['minus_words'].replace('-', '')
             )
 
             await store.get_plan_pic_file_id(self.dp.bot)

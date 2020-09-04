@@ -65,6 +65,7 @@ class Store(models.Model):
 
     intent_list = models.CharField(max_length=1000, default=json.dumps([]))
     assort_kw  = models.TextField(max_length=2000)
+    minus_words = models.CharField(max_length=1000, default='')
 
 
     def get_card_text(self):
