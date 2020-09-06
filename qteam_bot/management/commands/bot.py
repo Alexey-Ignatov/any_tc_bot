@@ -90,7 +90,7 @@ def get_best_keyword_match(msg, kw_to_id, th):
 
 class TextProcesser:
     def predict(self, name):
-        th1 = .8
+        th1 = .75
         th2 = .2
         r = requests.get('http://127.0.0.1:8000/model/?format=json', data={'context': name})
         res_dict = r.json()['intent_list']
