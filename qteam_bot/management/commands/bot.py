@@ -90,7 +90,7 @@ def get_best_keyword_match(msg, kw_to_id, th):
 
 class TextProcesser:
     def predict(self, name):
-        th1 = .7
+        th1 = .8
         th2 = .2
         r = requests.get('http://127.0.0.1:8000/model/?format=json', data={'context': name})
         res_dict = r.json()['intent_list']
@@ -529,7 +529,7 @@ class Command(BaseCommand):
             if real_data['type'] in ['show_cat']:
                 org_list =[org for org in self.text_bot.stores_list if real_data['iten'] in org.intent_list]
                 org_id_to_some_data = defaultdict(dict)
-                for org in org_list:
+                for org in sorted(org_list, key=lambda x: x.title):
                     org_id_to_some_data[org.id]['short_descr'] = org.get_inlist_descr()
                     plit = await database_sync_to_async(PictureList.objects.create)(json_data=json.dumps([]))
                     org_id_to_some_data[org.id]['plit_id'] = plit.id
