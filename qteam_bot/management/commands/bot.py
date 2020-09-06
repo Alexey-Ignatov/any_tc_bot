@@ -446,7 +446,7 @@ class Command(BaseCommand):
                 org = org[0]
                 callback_dict = {'type': 'show_org',
                                  'org_id': org.id,
-                                 'plist': ''}
+                                 'plist': -100}
                 btn = InlineKeyboardButton(text="В школу на всех парусах!",
                                            callback_data=json.dumps(callback_dict))
                 keyboard.row(btn)
