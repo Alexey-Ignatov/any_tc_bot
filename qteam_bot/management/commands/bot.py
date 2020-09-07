@@ -483,7 +483,7 @@ class Command(BaseCommand):
                 return
 
 
-            org_list, org_id_to_props, intent_list = self.text_bot.process(message.text)
+            org_list, org_id_to_props, intent_list = self.text_bot.process(message.text.replace('ё','е'))
 
             org_id_to_some_data = defaultdict(dict)
             for org in org_list:
