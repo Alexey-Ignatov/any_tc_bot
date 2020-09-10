@@ -476,6 +476,7 @@ class Command(BaseCommand):
                 #                                                             bot=self.acur_bot)
                 for user in bot_users:
                     for i in range(1000):
+                        await asyncio.sleep(.1)
                         print(int(user.bot_user_id), int(i))
                         try:
                             await self.dp.bot.delete_message(int(user.bot_user_id), int(i))
