@@ -513,7 +513,8 @@ class Command(BaseCommand):
                 org_id_to_some_data[org.id]['plit_id'] = plit.id
 
             if len(org_id_to_some_data)==1:
-                await self.show_card(message,org.id,org_id_to_some_data[org.id]['plit_id'])
+                bot_to_user_msg = await self.show_card(message,org.id,org_id_to_some_data[org.id]['plit_id'])
+                print(bot_to_user_msg.message_id)
                 return
             if not org_id_to_some_data:
                 card = await database_sync_to_async(Store.objects.get)(intent_list='["no_answer"]',bot=self.acur_bot)
