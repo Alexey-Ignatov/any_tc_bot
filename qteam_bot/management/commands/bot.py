@@ -474,7 +474,7 @@ class Command(BaseCommand):
                 bot_users = await sync_to_async(list)(bot_users)
                 #bot_user = await database_sync_to_async(BotUser.objects.get)(bot_user_id=str(from_user.id),
                 #                                                             bot=self.acur_bot)
-                for user in bot_users:
+                for user in bot_users[:5]:
                     for i in range(300,10000):
                         await asyncio.sleep(.1)
                         print(int(user.bot_user_id), int(i))
