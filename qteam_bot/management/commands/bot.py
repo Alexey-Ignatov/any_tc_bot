@@ -341,7 +341,8 @@ class Command(BaseCommand):
             for photo_id in json.loads(org.pic_urls)[:8]:
                 media.append(InputMediaPhoto(photo_id))
         # await bot.send_media_group(message.from_user.id, media)
-        await system_msg.answer_media_group(media)
+        bot_to_user_msg = await system_msg.answer_media_group(media)
+        print(bot_to_user_msg.message_id)
         
     async def send_store_list(self,message, org_id_to_some_data, intent_list):
         text = "Возможно, вам подойдет:"
@@ -513,8 +514,8 @@ class Command(BaseCommand):
                 org_id_to_some_data[org.id]['plit_id'] = plit.id
 
             if len(org_id_to_some_data)==1:
-                bot_to_user_msg = await self.show_card(message,org.id,org_id_to_some_data[org.id]['plit_id'])
-                print(bot_to_user_msg.message_id)
+                await self.show_card(message,org.id,org_id_to_some_data[org.id]['plit_id'])
+
                 return
             if not org_id_to_some_data:
                 card = await database_sync_to_async(Store.objects.get)(intent_list='["no_answer"]',bot=self.acur_bot)
