@@ -342,7 +342,7 @@ class Command(BaseCommand):
                 media.append(InputMediaPhoto(photo_id))
         # await bot.send_media_group(message.from_user.id, media)
         bot_to_user_msg = await system_msg.answer_media_group(media)
-        print(bot_to_user_msg.message_id)
+        print(bot_to_user_msg[0].message_id)
         
     async def send_store_list(self,message, org_id_to_some_data, intent_list):
         text = "Возможно, вам подойдет:"
