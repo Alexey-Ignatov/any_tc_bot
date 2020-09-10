@@ -469,6 +469,19 @@ class Command(BaseCommand):
                 await message.answer(text='Загрузили!')
                 return
 
+            if message.text == 'удалить все':
+                bot_users = await database_sync_to_async(BotUser.objects.filter)(bot=self.acur_bot)
+                bot_users = await sync_to_async(list)(bot_users)
+                #bot_user = await database_sync_to_async(BotUser.objects.get)(bot_user_id=str(from_user.id),
+                #                                                             bot=self.acur_bot)
+                for user in bot_users:
+                    for i in range(1000):
+                        print(int(user.bot_user_id), int(i))
+                        try:
+                            await self.dp.bot.delete_message(int(user.bot_user_id), int(i))
+                        except:
+                            print('exception')
+
 
             if bot_user.is_operator_dicussing:
                 admin_acur_bot = await database_sync_to_async( AcurBot.objects.get)(token=self.admin_token)
