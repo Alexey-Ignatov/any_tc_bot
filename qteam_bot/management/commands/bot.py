@@ -28,6 +28,8 @@ from fuzzywuzzy import fuzz
 import cyrtranslit
 MAX_CAPTION_SIZE = 1000
 
+import uuid
+
 
 def extr_nouns(expl_str):
     if not expl_str:
@@ -35,7 +37,7 @@ def extr_nouns(expl_str):
     r = requests.post('http://localhost:5000/model', data=json.dumps({'x': [expl_str]}),
                       headers={"content-type": "application/json", 'accept': 'application/json'})
     synt_res = r.json()[0][0]
-    reg_nouns = [l.split('\t')[2] for l in synt_res.split('\n')[:-1] if l.split('\t')[3] in ['ADJ', 'NOUN']]
+    reg_nouns = [l.split('\t')[2] for l in synt_res.split('\n')[:-1] if l.split('\t')[3] not in ['ADV', 'VERB', 'ADP']]
     return ' '.join(reg_nouns)
 
 
@@ -90,7 +92,7 @@ def get_best_keyword_match(msg, kw_to_id, th):
 
 class TextProcesser:
     def predict(self, name):
-        th1 = .75
+        th1 = .7
         th2 = .2
         r = requests.get('http://127.0.0.1:8000/model/?format=json', data={'context': name})
         res_dict = r.json()['intent_list']
@@ -124,14 +126,27 @@ class TextProcesser:
 
         return get_best_keyword_match(query, brand_name_to_id, 90), get_best_keyword_match(query, kw_to_ind, 90)
 
+    def find_good_df(self, text):
+        res = self.prods_df_enriched.search_kw.to_dict()
+        s_tokens = extr_nouns(text).split(' ')
+        scores = defaultdict(list)
+        for ind, tokens in res.items():
+            scores[len(set(tokens) & set(s_tokens))] += [ind]
+        if max(scores.keys()) != len(s_tokens):
+            return []
+        inds_set = set(scores[max(scores.keys())])
+        return self.prods_df_enriched[self.prods_df_enriched.index.isin(inds_set)]
+
     def fing_prod_props(self, msg):
-        prod_type_inds = sum([self.prod_name_to_indlist[w] for w in norm_name(msg) + extr_nouns(msg).split(' ') if
-                              w in self.prod_name_to_indlist], [])
+        # prod_type_inds = sum([self.prod_name_to_indlist[w] for w in norm_name(msg) + extr_nouns(msg).split(' ') if
+        #                      w in self.prod_name_to_indlist], [])
 
-        if not prod_type_inds:
+        # if not prod_type_inds:
+        #    return [], {}
+
+        cur_prod_df = self.find_good_df(msg)
+        if not cur_prod_df.shape[0]:
             return [], {}
-
-        cur_prod_df = self.prods_df_enriched[self.prods_df_enriched.index.isin(prod_type_inds)]
         print(cur_prod_df)
         be_in_url_to_inds = cur_prod_df.groupby('store_url').groups
         be_in_url_and_prods = []
@@ -144,10 +159,12 @@ class TextProcesser:
             cur_props = {}
             mean_list = [prod['price'] for prod in prods_data if str(prod['price']) != 'nan']
             cur_props['mean_price'] = np.mean(mean_list) if mean_list else None
+            if mean_list:
+                print(np.mean(mean_list))
             cur_props['example_pics'] = sorted(
                 [prod['picture'] for prod in prods_data if str(prod['picture']) != 'nan'])[:9]
             be_in_url_and_props.append((url, cur_props))
-
+        print(be_in_url_and_props)
         store_id_to_props = {}
         res_stores = []
         for be_in_link, props in be_in_url_and_props:
@@ -161,10 +178,8 @@ class TextProcesser:
 
     def process(self, msg, final_try=False):
         print(msg)
-        extr_msg = extr_nouns(msg)
-        msg_tokens_list = norm_name("{} {}".format(extr_msg, msg))
         name_result_list, kw_result_list = self.org_find_name_keywords(msg)
-        name_result_list_extr, kw_result_list_extr = self.org_find_name_keywords(extr_msg)
+        name_result_list_extr, kw_result_list_extr = self.org_find_name_keywords(extr_nouns(msg))
 
         ind_to_store_dict = {store.id: store for store in self.stores_list}
 
@@ -203,7 +218,6 @@ class TextProcesser:
 
         name_kw_stores = name_result_list + kw_result_list
         stores = name_kw_stores if name_kw_stores else prod_org_list + intent_org_list
-        stores = [store for store in stores if not set(store.minus_words.split(',')) & set(msg_tokens_list)]
         stores = list(set(stores))
 
         stores_inds_order = sorted(stores, key=lambda x: ind_relevance[x.id], reverse=True)[:15]
@@ -215,7 +229,6 @@ class TextProcesser:
         if not stores_inds_order and not final_try:
             return self.process(spellcheck(msg), final_try=True)
         return stores_inds_order, org_id_to_props, list(intent_list.keys())
-
 
 
 class Command(BaseCommand):
@@ -267,7 +280,7 @@ class Command(BaseCommand):
                     bot=self.acur_bot,
                     is_availible_for_subscription=is_avail_for_subscr,
                     cat=store_cat,
-                    be_in_link = row['be_in_link'] if row['be_in_link']!='no_link' else row['input_url'],
+                    be_in_link = row['input_url'],
                     is_top = row['top']=='top',
                     intent_list=row['intent_new'],
                     assort_kw =row['assort_kw'],
@@ -281,8 +294,9 @@ class Command(BaseCommand):
     async def init_text_bot(self):
         stores_list = await database_sync_to_async(Store.objects.filter)(bot=self.acur_bot)
         stores_list = await sync_to_async(list)(stores_list)
+
         text_bot = TextProcesser()
-        prods_df = pd.read_pickle('new_prods_df.pickle')
+        prods_df = pd.read_pickle('lamoda_df.pickle')
 
         text_bot.stores_list = stores_list
 
@@ -295,25 +309,22 @@ class Command(BaseCommand):
                 row_template['name'] = kw.strip()
                 row_template['search_kw'] = [kw.strip()]
                 row_template['store_url'] = cur_org.be_in_link
+                row_template['id'] = uuid.uuid1()
                 row_list.append(row_template)
 
         add_prods_df = pd.DataFrame(row_list)
         prods_df_enriched = prods_df.append(add_prods_df).reset_index().iloc[:, 1:]
 
-        prod_name_to_indlist = defaultdict(list)
-        for ind, row in prods_df_enriched.iterrows():
-            for kw in row['search_kw']:
-                prod_name_to_indlist[kw].append(ind)
-
-        text_bot.prod_name_to_indlist = prod_name_to_indlist
         text_bot.prods_df_enriched = prods_df_enriched
+        text_bot.prods_df_enriched = text_bot.prods_df_enriched.set_index('id')
+
         #import pickle
         #pickle.dump(prod_name_to_indlist, open('prod_name_to_indlist.pickle', 'wb'))
         #pickle.dump(prods_df_enriched, open('prods_df_enriched.pickle', 'wb'))
 
         #text_bot.prod_name_to_indlist = pd.read_pickle('prod_name_to_indlist.pickle')
         #text_bot.prods_df_enriched = pd.read_pickle('prods_df_enriched.pickle')
-        text_bot.in_2_label = pd.read_pickle('in_2_label.pkl')
+        #text_bot.in_2_label = pd.read_pickle('in_2_label.pkl')
 
         self.text_bot = text_bot
             # context.bot.send_media_group(chat_id=update.effective_chat.id, media=[inp_photo, inp_photo2])
