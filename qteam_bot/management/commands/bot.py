@@ -133,7 +133,7 @@ class TextProcesser:
         for ind, tokens in res.items():
             scores[len(set(tokens) & set(s_tokens))] += [ind]
         if max(scores.keys()) != len(s_tokens):
-            return []
+            return pd.DataFrame([], columns = self.prods_df_enriched.columns)
         inds_set = set(scores[max(scores.keys())])
         return self.prods_df_enriched[self.prods_df_enriched.index.isin(inds_set)]
 
@@ -324,7 +324,7 @@ class Command(BaseCommand):
 
         #text_bot.prod_name_to_indlist = pd.read_pickle('prod_name_to_indlist.pickle')
         #text_bot.prods_df_enriched = pd.read_pickle('prods_df_enriched.pickle')
-        #text_bot.in_2_label = pd.read_pickle('in_2_label.pkl')
+        #cur_prod_df.shape[0]text_bot.in_2_label = pd.read_pickle('in_2_label.pkl')
 
         self.text_bot = text_bot
             # context.bot.send_media_group(chat_id=update.effective_chat.id, media=[inp_photo, inp_photo2])
