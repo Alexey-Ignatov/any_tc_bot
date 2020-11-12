@@ -34,7 +34,7 @@ ALLOWED_HOSTS = [
 # Application definition
 
 INSTALLED_APPS = [
-    'qteam_bot.apps.QteamBotConfig',
+    #'qteam_bot.apps.QteamBotConfig',
     #'qteam_bot',
     'rest_framework',
     'django.contrib.admin',
