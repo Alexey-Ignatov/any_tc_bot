@@ -45,7 +45,14 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django_extensions'
 ]
-
+NOTEBOOK_ARGUMENTS = [
+    "--ip",
+    "0.0.0.0",
+    "--port",
+    "9001",
+    "--allow-root",
+    "--no-browser",
+]
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
