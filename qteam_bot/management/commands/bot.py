@@ -130,7 +130,7 @@ class TextProcesser:
         res = self.prods_df_enriched.search_kw.to_dict()
         s_tokens = extr_nouns(text).split(' ')
 
-        if not set(text_bot.wear_kws) &set(s_tokens):
+        if not set(self.wear_kws) &set(s_tokens):
             return pd.DataFrame([], columns = self.prods_df_enriched.columns)
 
         scores = defaultdict(list)
