@@ -351,12 +351,13 @@ class Command(BaseCommand):
             pics_list = json.loads(plist.json_data)
         except PictureList.DoesNotExist:
             pics_list = []
-        #if pics_list:
-        #    for photo_id in pics_list[:8]:
-        #        media.append(InputMediaPhoto(photo_id))
-        #else:
-        #    for photo_id in json.loads(org.pic_urls)[:8]:
-        #        media.append(InputMediaPhoto(photo_id))
+        if pics_list:
+            for photo_id in pics_list[:8]:
+                media.append(InputMediaPhoto(photo_id))
+        else:
+            print('json.loads(org.pic_urls)[:8]',json.loads(org.pic_urls)[:8])
+            for photo_id in json.loads(org.pic_urls)[:8]:
+                media.append(InputMediaPhoto(photo_id))
         # await bot.send_media_group(message.from_user.id, media)
         bot_to_user_msg = await system_msg.answer_media_group(media)
         print(bot_to_user_msg[0].message_id)
