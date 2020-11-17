@@ -129,6 +129,10 @@ class TextProcesser:
     def find_good_df(self, text):
         res = self.prods_df_enriched.search_kw.to_dict()
         s_tokens = extr_nouns(text).split(' ')
+
+        if not set(text_bot.wear_kws) &set(s_tokens):
+            return pd.DataFrame([], columns = self.prods_df_enriched.columns)
+
         scores = defaultdict(list)
         for ind, tokens in res.items():
             scores[len(set(tokens) & set(s_tokens))] += [ind]
@@ -317,6 +321,7 @@ class Command(BaseCommand):
 
         text_bot.prods_df_enriched = prods_df_enriched
         text_bot.prods_df_enriched = text_bot.prods_df_enriched.set_index('id')
+        text_bot.wear_kws = pickle.load(open('wear_kws.pickle', 'rb'))
 
         #import pickle
         #pickle.dump(prod_name_to_indlist, open('prod_name_to_indlist.pickle', 'wb'))
@@ -450,7 +455,7 @@ class Command(BaseCommand):
             await database_sync_to_async(bot_user.upd_last_active)()
 
             await database_sync_to_async(StartEvent.objects.create)(bot_user=bot_user)
-            org = await database_sync_to_async(Store.objects.filter)(title="В школу на всех парусах!", bot=self.acur_bot)
+            org = await database_sync_to_async(Store.objects.filter)(title="Черная Пятница", bot=self.acur_bot)
             org = await sync_to_async(list)(org)
             # keyboard = []
             keyboard = InlineKeyboardMarkup()
@@ -459,7 +464,7 @@ class Command(BaseCommand):
                 callback_dict = {'type': 'show_org',
                                  'org_id': org.id,
                                  'plist': -100}
-                btn = InlineKeyboardButton(text="В школу на всех парусах!",
+                btn = InlineKeyboardButton(text="Сокровища черной пятницы!",
                                            callback_data=json.dumps(callback_dict))
                 keyboard.row(btn)
 
