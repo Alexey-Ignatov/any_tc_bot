@@ -296,6 +296,7 @@ class Command(BaseCommand):
         await self.init_text_bot()
 
     async def init_text_bot(self):
+        import pickle
         stores_list = await database_sync_to_async(Store.objects.filter)(bot=self.acur_bot)
         stores_list = await sync_to_async(list)(stores_list)
 
