@@ -401,9 +401,9 @@ class Command(BaseCommand):
                                                 {'iten': intent_type,
                                                  'type': 'show_cat'}))
             keyboard.row(btn_prev)
-        btn_prev = InlineKeyboardButton(text="Связаться с оператором",
-                                        url='t.me/turbo_indus')
-        keyboard.row(btn_prev)
+        #btn_prev = InlineKeyboardButton(text="Связаться с оператором",
+        #                                url='t.me/turbo_indus')
+        #keyboard.row(btn_prev)
         await message.answer(text,
                             parse_mode="Markdown",
                              reply_markup=keyboard)
