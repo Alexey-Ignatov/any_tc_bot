@@ -15,7 +15,7 @@ from django.apps import apps
 from telebot import types
 from aiogram.types import ContentTypes
 from qteam_bot.models import BotUser,Store, StoreCategory,StartEvent,CardShowList,\
-    MessageLog, OrgSubscription, AcurBot,SavedAnswer,PictureList
+    MessageLog, OrgSubscription, AcurBot,SavedAnswer,PictureList,BtnPressedEvent
 import asyncio
 import numpy as np
 
@@ -31,10 +31,10 @@ MAX_CAPTION_SIZE = 1000
 import uuid
 
 
-def extr_nouns(expl_str):
+def extr_nouns(expl_str, model_url):
     if not expl_str:
         return expl_str
-    r = requests.post('http://localhost:5000/model', data=json.dumps({'x': [expl_str]}),
+    r = requests.post(model_url, data=json.dumps({'x': [expl_str]}),
                       headers={"content-type": "application/json", 'accept': 'application/json'})
     synt_res = r.json()[0][0]
     reg_nouns = [l.split('\t')[2] for l in synt_res.split('\n')[:-1] if l.split('\t')[3] not in ['ADV', 'VERB', 'ADP']]
@@ -94,7 +94,7 @@ class TextProcesser:
     def predict(self, name):
         th1 = .7
         th2 = .2
-        r = requests.get('http://127.0.0.1:8000/model/?format=json', data={'context': name})
+        r = requests.get(self.acur_api_url, data={'context': name})
         res_dict = r.json()['intent_list']
         most_rel_intents_ser = pd.Series(res_dict).sort_values(ascending=False)[:3]
         if most_rel_intents_ser.sum() < th1:
@@ -128,7 +128,7 @@ class TextProcesser:
 
     def find_good_df(self, text):
         res = self.prods_df_enriched.search_kw.to_dict()
-        s_tokens = extr_nouns(text).split(' ')
+        s_tokens = extr_nouns(text, self.morpho_api_url).split(' ')
 
         if not set(self.wear_kws) &set(s_tokens):
             return pd.DataFrame([], columns = self.prods_df_enriched.columns)
@@ -183,7 +183,7 @@ class TextProcesser:
     def process(self, msg, final_try=False):
         print(msg)
         name_result_list, kw_result_list = self.org_find_name_keywords(msg)
-        name_result_list_extr, kw_result_list_extr = self.org_find_name_keywords(extr_nouns(msg))
+        name_result_list_extr, kw_result_list_extr = self.org_find_name_keywords(extr_nouns(msg, self.morpho_api_url))
 
         ind_to_store_dict = {store.id: store for store in self.stores_list}
 
@@ -223,6 +223,7 @@ class TextProcesser:
         name_kw_stores = name_result_list + kw_result_list
         stores = name_kw_stores if name_kw_stores else prod_org_list + intent_org_list
         stores = list(set(stores))
+        stores = sorted(stores, key=lambda x: x.title)
 
         stores_inds_order = sorted(stores, key=lambda x: ind_relevance[x.id], reverse=True)[:15]
 
@@ -301,6 +302,12 @@ class Command(BaseCommand):
         stores_list = await sync_to_async(list)(stores_list)
 
         text_bot = TextProcesser()
+        self.model_api_url =self.bot_config['model_api_url']
+        self.morpho_model_url = self.bot_config['morpho_model_url']
+
+        text_bot.acur_api_url = self.model_api_url
+        text_bot.morpho_api_url = self.morpho_model_url
+
         prods_df = pd.read_pickle('lamoda_df.pickle')
 
         text_bot.stores_list = stores_list
@@ -427,6 +434,9 @@ class Command(BaseCommand):
         self.TOKEN = self.bot_config['client_token']
         self.admin_token = self.bot_config['admin_token']
         self.intent_to_name = self.bot_config['intent_to_name']
+        self.model_api_url =self.bot_config['model_api_url']
+        self.morpho_model_url = self.bot_config['morpho_model_url']
+
 
 
         # Configure logging
@@ -550,6 +560,7 @@ class Command(BaseCommand):
 
             bot_user = await self.get_bot_user(callback.from_user)
             await database_sync_to_async(bot_user.upd_last_active)()
+            await database_sync_to_async(BtnPressedEvent.objects.create)(bot_user=bot_user, details_json=data)
 
             if real_data['type'] == 'operator':
                 bot_user.is_operator_dicussing = True
