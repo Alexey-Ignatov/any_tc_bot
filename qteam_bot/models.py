@@ -170,7 +170,12 @@ class BotUser(models.Model):
     def __str__(self):
         return str(self.id) + ' '+  str(self.bot_user_id)
 
-
+class BtnPressedEvent(models.Model):
+    bot_user = models.ForeignKey(BotUser, on_delete=models.DO_NOTHING)
+    date_added = models.DateTimeField(auto_now_add=True)
+    details_json = models.CharField(max_length=1500)
+    def __str__(self):
+        return str(self.bot_user.bot_user_id) + ' ' + str(self.date_added)
 
 class StartEvent(models.Model):
     bot_user = models.ForeignKey(BotUser, on_delete=models.CASCADE)
