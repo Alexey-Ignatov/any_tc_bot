@@ -467,7 +467,7 @@ class Command(BaseCommand):
             await database_sync_to_async(bot_user.upd_last_active)()
 
             await database_sync_to_async(StartEvent.objects.create)(bot_user=bot_user)
-            org = await database_sync_to_async(Store.objects.filter)(title="Черная Пятница", bot=self.acur_bot)
+            """org = await database_sync_to_async(Store.objects.filter)(title="Черная Пятница", bot=self.acur_bot)
             org = await sync_to_async(list)(org)
             # keyboard = []
             keyboard = InlineKeyboardMarkup()
@@ -478,7 +478,7 @@ class Command(BaseCommand):
                                  'plist': -100}
                 btn = InlineKeyboardButton(text="Сокровища черной пятницы!",
                                            callback_data=json.dumps(callback_dict))
-                keyboard.row(btn)
+                keyboard.row(btn)"""
 
 
             await message.answer_photo(self.bot_config['welcome_photo_url'],
