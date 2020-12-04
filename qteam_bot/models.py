@@ -180,6 +180,7 @@ class BtnPressedEvent(models.Model):
 class StartEvent(models.Model):
     bot_user = models.ForeignKey(BotUser, on_delete=models.CASCADE)
     date_added = models.DateTimeField(auto_now_add=True)
+    source = models.CharField(max_length=100, default='')
 
     def __str__(self):
         return str(self.bot_user.bot_user_id) + ' ' + str(self.date_added)

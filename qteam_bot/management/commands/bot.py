@@ -466,7 +466,7 @@ class Command(BaseCommand):
             bot_user = await self.get_bot_user(message.from_user)
             await database_sync_to_async(bot_user.upd_last_active)()
 
-            await database_sync_to_async(StartEvent.objects.create)(bot_user=bot_user)
+            await database_sync_to_async(StartEvent.objects.create)(bot_user=bot_user, source=message.text.split('start')[-1])
             keyboard = InlineKeyboardMarkup()
             """org = await database_sync_to_async(Store.objects.filter)(title="Черная Пятница", bot=self.acur_bot)
             org = await sync_to_async(list)(org)
