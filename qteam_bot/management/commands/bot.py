@@ -561,7 +561,16 @@ class Command(BaseCommand):
 
             bot_user = await self.get_bot_user(callback.from_user)
             await database_sync_to_async(bot_user.upd_last_active)()
-            await database_sync_to_async(BtnPressedEvent.objects.create)(bot_user=bot_user, details_json=data)
+
+            store_data = {k: v for k, v in real_data.items()}
+            if store_data['type'] in ['show_org'] and 'org_id' in store_data:
+                try:
+                    org = await database_sync_to_async(Store.objects.get)(pk=store_data['org_id'], bot=self.acur_bot)
+                except Store.DoesNotExist:
+                    return
+                store_data['org_name'] = org.title
+                store_data['bot'] = self.acur_bot.username
+            await database_sync_to_async(BtnPressedEvent.objects.create)(bot_user=bot_user, details_json=json.dumps(data))
 
             if real_data['type'] == 'operator':
                 bot_user.is_operator_dicussing = True
