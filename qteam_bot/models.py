@@ -160,6 +160,7 @@ class BotUser(models.Model):
     is_operator = models.BooleanField(default=False)
 
     is_operator_dicussing = models.BooleanField(default=False)
+    context = models.CharField(max_length=3000, default=json.dumps([]))
 
     last_active = models.DateTimeField()
     def upd_last_active(self):

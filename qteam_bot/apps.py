@@ -11,7 +11,8 @@ class QteamBotConfig(AppConfig):
         # Singleton utility
         # We load them here to avoid multiple instantiation across other
         # modules, that would take too much time.
-        from django.conf import settings
+        pass
+        """ from django.conf import settings
         from qteam_bot.models import AcurBot
         from telegram import Bot
 
@@ -31,7 +32,7 @@ class QteamBotConfig(AppConfig):
 
 
 
-            self.botid_to_botobj[bot.telegram_bot_id] =bot_obj
+            self.botid_to_botobj[bot.telegram_bot_id] =bot_obj"""
 
 
 

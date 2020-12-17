@@ -31,6 +31,136 @@ MAX_CAPTION_SIZE = 1000
 import uuid
 
 
+async def get_answer_by_lotery(req_type, bot_user):
+    user_context = json.loads(bot_user.context)
+    req_type_to_text = {}
+    req_type_to_keyboard = {}
+    req_type_to_text['name_kw'] = """Этот чат-бот — новый информационный сервис ТРЦ Океания, и мы хотим показать, чем он может быть вам полезен.
+
+📍 *Задание 1 из 3:*
+Поищите любой магазин в ТРЦ Океания, для этого просто напишите мне его название (на оригинальном языке или на русском, например, *“Love Republic”* или *“Лав репаблик”*). Чат-бот поможет найти магазин внутри ТРЦ.
+"""
+
+    req_type_to_text['prod'] = """🎉 Ура, первое задание выполнено! 🎉
+Кроме конкретных магазинов чат-бот поможет найти магазин по товарам или категории товаров.
+
+📍 *Задание 2 из 3:*
+Поищите любой товар или категорию товара (например, *"черная футболка"*). 
+
+Вы получите список подходящих магазинов и сможете быстро выбрать, куда пойти, просто нажав на цифру с номером магазина из списка.
+
+Часто чат-бот сообщает о средних ценах на товар, который вы ищете, и показывает примеры моделей, которые продаются в магазине (после выбора магазина нажатием кнопки с цифрой).
+"""
+    req_type_to_text['intent'] = """🎉 Осталось всего одно задание! 🎉
+
+Вы также можете быстро и легко найти подходящие торговые точки по категории товаров. 
+
+📍 *Задание 3 из 3:*
+Получите список магазинов, поискав любую категорию товаров. Например: *еда, одежда, обувь, украшения*.
+"""
+
+    req_type_to_keyboard['name_kw'] = InlineKeyboardMarkup()
+    req_type_to_keyboard['prod'] = InlineKeyboardMarkup()
+    req_type_to_keyboard['intent'] = InlineKeyboardMarkup()
+
+
+    if req_type in ['lotery_Falke', 'lotery_Reebok']:
+        if [elem for elem in user_context if elem['type'] == 'lotery']:
+            return 'Вы уже зарегистрирвоаны на лотерею!', InlineKeyboardMarkup()
+        user_context += [{'type': 'lotery',
+                          'lotery_branch': '',
+                          'search_types_list': [],
+                          'req_statisfied': False,
+                          'double_chance': False}]
+        if req_type == 'lotery_Falke':
+            user_context[-1]['lotery_branch'] = 'Falke'
+        else:
+            user_context[-1]['lotery_branch'] = 'Reebok'
+        bot_user.context = json.dumps(user_context)
+        await database_sync_to_async(bot_user.save)()
+
+        repl_text = """⚡️Отлично, вы в игре! ⚡️
+
+Результаты конкурса будут объявлены до 28.12.2020, вам придет сообщение в этом чат-боте, не отключайтесь от него. 
+
+Хотите пройти мини-игру за 60 секунд и *удвоить* свой шанс на выигрыш?"""
+
+        keyboard = InlineKeyboardMarkup()
+        btn = InlineKeyboardButton(text="🤑 Хочу! 🤑",
+                                   callback_data=json.dumps({'type': 'lotery_full'}))
+        keyboard.row(btn)
+        return repl_text, keyboard
+
+    if req_type == 'lotery_full':
+        if not [elem for elem in user_context if elem['type'] == 'lotery']:
+            reply_text = 'Произошло что-то не то, попробуйте снова выбрать типа лотереи!'
+            return reply_text ,InlineKeyboardMarkup()
+
+        lotery_dict = [elem for elem in user_context if elem['type'] == 'lotery'][0]
+        if lotery_dict['double_chance']:
+            reply_text = 'Вы уже удвоили свои шансы однажды!'
+            return reply_text ,InlineKeyboardMarkup()
+        lotery_dict['double_chance'] = True
+
+        bot_user.context = json.dumps(user_context)
+        await database_sync_to_async(bot_user.save)()
+        return req_type_to_text['name_kw'], req_type_to_keyboard['name_kw']
+
+
+    if not [elem for elem in user_context if elem['type'] == 'lotery']:
+        return None, None
+
+
+    lotery_dict = [elem for elem in user_context if elem['type'] == 'lotery'][0]
+    if lotery_dict['req_statisfied'] or not lotery_dict['double_chance']:
+        return None, None
+
+
+    if 'name_kw' not in lotery_dict['search_types_list']:
+        if req_type == 'name_kw':
+            lotery_dict['search_types_list'] = list(set(lotery_dict['search_types_list'] + [req_type]))
+            bot_user.context = json.dumps(user_context)
+            await database_sync_to_async(bot_user.save)()
+            return req_type_to_text['prod'], req_type_to_keyboard['prod']
+        else:
+            return None, None
+    if 'prod' not in lotery_dict['search_types_list'] :
+        if req_type == 'prod':
+            lotery_dict['search_types_list'] = list(set(lotery_dict['search_types_list'] + [req_type]))
+            bot_user.context = json.dumps(user_context)
+            await database_sync_to_async(bot_user.save)()
+            return req_type_to_text['intent'], req_type_to_keyboard['intent']
+        else:
+            return None, None
+    if 'intent' not in lotery_dict['search_types_list']:
+        if req_type == 'intent':
+            lotery_dict['search_types_list'] = list(set(lotery_dict['search_types_list'] + [req_type]))
+            bot_user.context = json.dumps(user_context)
+            await database_sync_to_async(bot_user.save)()
+        else:
+            return None, None
+
+    if not lotery_dict['req_statisfied'] and 'intent' in lotery_dict['search_types_list']:
+        lotery_dict['req_statisfied'] = True
+        bot_user.context = json.dumps(user_context)
+        await database_sync_to_async(bot_user.save)()
+
+        keyboard = InlineKeyboardMarkup()
+        btn = InlineKeyboardButton(text="🔥 Удвоить шансы на победу! 🔥",
+                                   callback_data=json.dumps({'type': 'finish_lotery'}))
+        keyboard.row(btn)
+        repl_text = """🤩 Поздравляем! 🤩
+
+Вы освоили нашего нового чат-бота! Кроме этого чат-бот может ответить на общие вопросы (о парковке, как проехать, часах работы и т.д. и т.п.).
+
+*Ваша заслуженная награда:*
+"""
+        return repl_text, keyboard
+    return 'Пока не получилось выполнить задание, попробуйте ввсети словосочетание из примера!', InlineKeyboardMarkup()
+
+
+
+
 def extr_nouns(expl_str, model_url):
     if not expl_str:
         return expl_str
@@ -181,7 +311,6 @@ class TextProcesser:
         return res_stores, store_id_to_props
 
     def process(self, msg, final_try=False):
-        print(msg)
         name_result_list, kw_result_list = self.org_find_name_keywords(msg)
         name_result_list_extr, kw_result_list_extr = self.org_find_name_keywords(extr_nouns(msg, self.morpho_api_url))
 
@@ -233,7 +362,12 @@ class TextProcesser:
 
         if not stores_inds_order and not final_try:
             return self.process(spellcheck(msg), final_try=True)
-        return stores_inds_order, org_id_to_props, list(intent_list.keys())
+
+        res_type = 'intent' if intent_list else 'no_answer'
+        res_type = 'promo' if 'promo' in intent_list else res_type
+        res_type = 'prod' if prod_org_list else res_type
+        res_type = 'name_kw' if name_kw_stores else res_type
+        return stores_inds_order, org_id_to_props, list(intent_list.keys()), res_type
 
 
 class Command(BaseCommand):
@@ -481,9 +615,34 @@ class Command(BaseCommand):
                                            callback_data=json.dumps(callback_dict))
                 keyboard.row(btn)"""
 
-
             await message.answer_photo(self.bot_config['welcome_photo_url'],
                                        caption=self.bot_config['welcome_text'][:MAX_CAPTION_SIZE],
+                                       reply_markup=keyboard,
+                                       parse_mode="Markdown")
+
+            lotery_text = """🎁 Океания дарит подарки! 🎁
+Только что у вас появился шанс выиграть один из двух сертификатов:
+
+1️⃣ В немецкий магазин одежды FALKE, или...
+2️⃣ В спортивный магазин Reebok! 
+
+Выбирайте один из двух вариантов и участвуйте в конкурсе! Итоги подведем до 28.12.2020."""
+            keyboard = InlineKeyboardMarkup()
+            callback_dict = {'type': 'lotery_Falke'}
+            btn = InlineKeyboardButton(text="1️⃣ Хочу сертификат FALKE!",
+                                       callback_data=json.dumps(callback_dict))
+            keyboard.row(btn)
+
+            callback_dict = {'type': 'lotery_Reebok'}
+            btn = InlineKeyboardButton(text="2️⃣ Хочу сертификат Reebok!",
+                                       callback_data=json.dumps(callback_dict))
+            keyboard.row(btn)
+
+
+            btn = InlineKeyboardButton(text="Условия конкурса",
+                                       url='https://www.google.com/')
+            keyboard.row(btn)
+            await message.answer(lotery_text,
                                        reply_markup=keyboard,
                                        parse_mode="Markdown")
 
@@ -528,8 +687,8 @@ class Command(BaseCommand):
                 return
 
 
-            org_list, org_id_to_props, intent_list = self.text_bot.process(message.text.replace('ё','е'))
-
+            org_list, org_id_to_props, intent_list, search_type = self.text_bot.process(message.text.replace('ё','е'))
+            print('search_type', search_type)
             org_id_to_some_data = defaultdict(dict)
             for org in org_list:
                 print(org.id ,'org.id')
@@ -544,13 +703,22 @@ class Command(BaseCommand):
 
             if len(org_id_to_some_data)==1:
                 await self.show_card(message,org.id,org_id_to_some_data[org.id]['plit_id'])
+                repl_text, keyboard = await get_answer_by_lotery(search_type, bot_user)
+                if repl_text:
+                    await message.answer(text=repl_text,reply_markup=keyboard,parse_mode="Markdown")
 
                 return
             if not org_id_to_some_data:
                 card = await database_sync_to_async(Store.objects.get)(intent_list='["no_answer"]',bot=self.acur_bot)
                 await self.show_card(message, card.id, -1)
+                repl_text, keyboard = await get_answer_by_lotery(search_type, bot_user)
+                if repl_text:
+                    await message.answer(text=repl_text,reply_markup=keyboard,parse_mode="Markdown")
                 return
             await self.send_store_list(message, org_id_to_some_data, intent_list)
+            repl_text, keyboard = await get_answer_by_lotery(search_type, bot_user)
+            if repl_text:
+                await message.answer(text=repl_text, reply_markup=keyboard, parse_mode="Markdown")
 
 
 
@@ -592,6 +760,36 @@ class Command(BaseCommand):
 
 
                 await self.send_store_list(callback.message, org_id_to_some_data, [])
+
+            if real_data['type'] in ['lotery_Falke', 'lotery_Reebok', 'lotery_full']:
+                repl_text, keyboard = await get_answer_by_lotery(real_data['type'], bot_user)
+                if repl_text:
+                    await callback.message.answer(repl_text, reply_markup=keyboard,parse_mode="Markdown")
+                    return
+            if real_data['type']=='finish_lotery':
+                repl_text = """👏 Отлично, ваш шанс на победу удвоен! 👏
+
+Напоминаем, итоги конкурса будут подведены до 28.12.2020 в этом чат-боте. 
+
+Пользуйтесь чат-ботом и задавайте ему любые вопросы о ТРЦ, на многие он сможет ответить (или, по крайней мере, узнать, что вам интересно и ответить в следующей версии)!
+
+Помогите нам стать лучше!
+Напишите ваши впечатления и комментарии:
+
+*Остаемся на связи!*
+                """
+                keyboard = InlineKeyboardMarkup()
+                btn = InlineKeyboardButton(text="Адрес для связи",
+                                           url='https://t.me/alex_ignatov_msu')
+                keyboard.row(btn)
+                await callback.message.answer_photo('https://www.omni-academy.com/wp-content/uploads/2020/04/ROBOTIC-2-1-1-1-1-1-1-1-1-1-1-600x600.jpg',
+                                           caption=repl_text,
+                                           reply_markup = keyboard,
+                                           parse_mode="Markdown")
+
+
+
+
 
 
 
