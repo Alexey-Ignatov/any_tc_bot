@@ -69,7 +69,7 @@ async def get_answer_by_lotery(req_type, bot_user):
             return 'Вы уже зарегистрирвоаны на лотерею!', InlineKeyboardMarkup()
         user_context += [{'type': 'lotery',
                           'lotery_branch': '',
-                          'search_types_list': [],
+                          'search_types_list':  [],
                           'req_statisfied': False,
                           'double_chance': False}]
         if req_type == 'lotery_Falke':
