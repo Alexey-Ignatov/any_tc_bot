@@ -38,7 +38,7 @@ async def get_answer_by_lotery(req_type, bot_user):
     req_type_to_text['name_kw'] = """Этот чат-бот — новый информационный сервис ТРЦ Океания, и мы хотим показать, чем он может быть вам полезен.
 
 📍 *Задание 1 из 3:*
-Поищите любой магазин в ТРЦ Океания, для этого просто напишите мне его название (на оригинальном языке или на русском, например, *“Рандеву”* или *“Rendez-Vous”*). Чат-бот поможет найти магазин внутри ТРЦ.
+Поищите любой магазин в ТРЦ Океания, для этого просто напишите мне его название (на оригинальном языке или на русском, например, *Рандеву* или *Rendez-Vous*). Чат-бот поможет найти магазин внутри ТРЦ.
 """
 
     req_type_to_text['prod'] = """🎉 Ура, первое задание выполнено! 🎉
@@ -49,7 +49,7 @@ async def get_answer_by_lotery(req_type, bot_user):
 Часто чат-бот сообщает о средних ценах на товар, который вы ищете, и показывает примеры моделей, которые продаются в магазине (после выбора магазина нажатием кнопки с цифрой).
 
 📍 *Задание 2 из 3:*
-Поищите любой товар из категории одежды (например, *"черная футболка"*). 
+Поищите любой товар из категории одежды (например, *черная футболка*). 
 """
     req_type_to_text['intent'] = """🎉 Осталось всего одно задание! 🎉
 
@@ -707,7 +707,7 @@ class Command(BaseCommand):
                 await self.show_card(message,org.id,org_id_to_some_data[org.id]['plit_id'])
                 repl_text, keyboard = await get_answer_by_lotery(search_type, bot_user)
                 if repl_text:
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(5)
                     await message.answer(text=repl_text,reply_markup=keyboard,parse_mode="Markdown")
 
                 return
@@ -716,13 +716,13 @@ class Command(BaseCommand):
                 await self.show_card(message, card.id, -1)
                 repl_text, keyboard = await get_answer_by_lotery(search_type, bot_user)
                 if repl_text:
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(5)
                     await message.answer(text=repl_text,reply_markup=keyboard,parse_mode="Markdown")
                 return
             await self.send_store_list(message, org_id_to_some_data, intent_list)
             repl_text, keyboard = await get_answer_by_lotery(search_type, bot_user)
             if repl_text:
-                await asyncio.sleep(2)
+                await asyncio.sleep(5)
                 await message.answer(text=repl_text, reply_markup=keyboard, parse_mode="Markdown")
 
 
