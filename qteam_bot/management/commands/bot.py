@@ -642,8 +642,6 @@ class Command(BaseCommand):
             btn = InlineKeyboardButton(text="Условия конкурса",
                                        url='https://www.google.com/')
             keyboard.row(btn)
-            Love
-            Republic
             await message.answer(lotery_text,
                                        reply_markup=keyboard,
                                        parse_mode="Markdown")
