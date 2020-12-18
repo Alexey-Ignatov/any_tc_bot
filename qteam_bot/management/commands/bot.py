@@ -614,7 +614,7 @@ class Command(BaseCommand):
                 btn = InlineKeyboardButton(text="Сокровища черной пятницы!",
                                            callback_data=json.dumps(callback_dict))
                 keyboard.row(btn)"""
-
+            await asyncio.sleep(2)
             await message.answer_photo(self.bot_config['welcome_photo_url'],
                                        caption=self.bot_config['welcome_text'][:MAX_CAPTION_SIZE],
                                        reply_markup=keyboard,
@@ -705,6 +705,7 @@ class Command(BaseCommand):
                 await self.show_card(message,org.id,org_id_to_some_data[org.id]['plit_id'])
                 repl_text, keyboard = await get_answer_by_lotery(search_type, bot_user)
                 if repl_text:
+                    await asyncio.sleep(2)
                     await message.answer(text=repl_text,reply_markup=keyboard,parse_mode="Markdown")
 
                 return
@@ -713,11 +714,13 @@ class Command(BaseCommand):
                 await self.show_card(message, card.id, -1)
                 repl_text, keyboard = await get_answer_by_lotery(search_type, bot_user)
                 if repl_text:
+                    await asyncio.sleep(2)
                     await message.answer(text=repl_text,reply_markup=keyboard,parse_mode="Markdown")
                 return
             await self.send_store_list(message, org_id_to_some_data, intent_list)
             repl_text, keyboard = await get_answer_by_lotery(search_type, bot_user)
             if repl_text:
+                await asyncio.sleep(2)
                 await message.answer(text=repl_text, reply_markup=keyboard, parse_mode="Markdown")
 
 
@@ -779,7 +782,7 @@ class Command(BaseCommand):
                 """
                 keyboard = InlineKeyboardMarkup()
                 btn = InlineKeyboardButton(text="Дать обратную связь",
-                                           url='https://t.me/alex_ignatov_msu')
+                                           url='https://forms.gle/kVu19uaroh99DDAT8')
                 keyboard.row(btn)
                 await callback.message.answer_photo('https://www.omni-academy.com/wp-content/uploads/2020/04/ROBOTIC-2-1-1-1-1-1-1-1-1-1-1-600x600.jpg',
                                            caption=repl_text,
