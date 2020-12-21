@@ -806,6 +806,7 @@ class Command(BaseCommand):
                 user_context = json.loads(bot_user.context)
                 lotery_dict = [elem for elem in user_context if elem['type'] == 'lotery'][0]
                 lotery_dict['double_chance'] = False
+                lotery_dict['search_types_list'] = []
                 bot_user.context = json.dumps(user_context)
                 await database_sync_to_async(bot_user.save)()
                 await callback.message.answer("""Мини-игра остановлена! Вы можете пользоваться ботом в обычном режиме.
