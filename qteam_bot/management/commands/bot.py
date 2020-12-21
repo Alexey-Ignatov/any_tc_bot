@@ -127,7 +127,7 @@ async def get_answer_by_lotery(req_type, bot_user):
             btn = InlineKeyboardButton(text="Остановить выполнение заданий",
                                        callback_data=json.dumps({'type': 'lotery_stop'}))
             keyboard.row(btn)
-            return 'Пока не получилось выполнить задание, попробуйте ввсети словосочетание из примера!', keyboard
+            return 'Пока не получилось выполнить задание, попробуйте ввести словосочетание из примера!', keyboard
     if 'prod' not in lotery_dict['search_types_list'] :
         if req_type == 'prod':
             lotery_dict['search_types_list'] = list(set(lotery_dict['search_types_list'] + [req_type]))
@@ -139,7 +139,7 @@ async def get_answer_by_lotery(req_type, bot_user):
             btn = InlineKeyboardButton(text="Остановить выполнение заданий",
                                        callback_data=json.dumps({'type': 'lotery_stop'}))
             keyboard.row(btn)
-            return 'Пока не получилось выполнить задание, попробуйте ввсети словосочетание из примера!', keyboard
+            return 'Пока не получилось выполнить задание, попробуйте ввести словосочетание из примера!', keyboard
     if 'intent' not in lotery_dict['search_types_list']:
         if req_type == 'intent':
             lotery_dict['search_types_list'] = list(set(lotery_dict['search_types_list'] + [req_type]))
@@ -150,7 +150,7 @@ async def get_answer_by_lotery(req_type, bot_user):
             btn = InlineKeyboardButton(text="Остановить выполнение заданий",
                                        callback_data=json.dumps({'type': 'lotery_stop'}))
             keyboard.row(btn)
-            return 'Пока не получилось выполнить задание, попробуйте ввсети словосочетание из примера!', keyboard
+            return 'Пока не получилось выполнить задание, попробуйте ввести словосочетание из примера!', keyboard
 
     if not lotery_dict['req_statisfied'] and 'intent' in lotery_dict['search_types_list']:
         lotery_dict['req_statisfied'] = True
@@ -168,7 +168,7 @@ async def get_answer_by_lotery(req_type, bot_user):
 *Ваша заслуженная награда:*
 """
         return repl_text, keyboard
-    return 'Пока не получилось выполнить задание, попробуйте ввсети словосочетание из примера!', InlineKeyboardMarkup()
+    return 'Пока не получилось выполнить задание, попробуйте ввести словосочетание из примера!', InlineKeyboardMarkup()
 
 
 
