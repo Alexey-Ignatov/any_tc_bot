@@ -123,7 +123,11 @@ async def get_answer_by_lotery(req_type, bot_user):
             await database_sync_to_async(bot_user.save)()
             return req_type_to_text['prod'], req_type_to_keyboard['prod']
         else:
-            return 'Пока не получилось выполнить задание, попробуйте ввсети словосочетание из примера!', InlineKeyboardMarkup()
+            keyboard = InlineKeyboardMarkup()
+            btn = InlineKeyboardButton(text="Остановить выполнение заданий",
+                                       callback_data=json.dumps({'type': 'lotery_stop'}))
+            keyboard.row(btn)
+            return 'Пока не получилось выполнить задание, попробуйте ввсети словосочетание из примера!', keyboard
     if 'prod' not in lotery_dict['search_types_list'] :
         if req_type == 'prod':
             lotery_dict['search_types_list'] = list(set(lotery_dict['search_types_list'] + [req_type]))
@@ -131,14 +135,22 @@ async def get_answer_by_lotery(req_type, bot_user):
             await database_sync_to_async(bot_user.save)()
             return req_type_to_text['intent'], req_type_to_keyboard['intent']
         else:
-            return 'Пока не получилось выполнить задание, попробуйте ввсети словосочетание из примера!', InlineKeyboardMarkup()
+            keyboard = InlineKeyboardMarkup()
+            btn = InlineKeyboardButton(text="Остановить выполнение заданий",
+                                       callback_data=json.dumps({'type': 'lotery_stop'}))
+            keyboard.row(btn)
+            return 'Пока не получилось выполнить задание, попробуйте ввсети словосочетание из примера!', keyboard
     if 'intent' not in lotery_dict['search_types_list']:
         if req_type == 'intent':
             lotery_dict['search_types_list'] = list(set(lotery_dict['search_types_list'] + [req_type]))
             bot_user.context = json.dumps(user_context)
             await database_sync_to_async(bot_user.save)()
         else:
-            return 'Пока не получилось выполнить задание, попробуйте ввсети словосочетание из примера!', InlineKeyboardMarkup()
+            keyboard = InlineKeyboardMarkup()
+            btn = InlineKeyboardButton(text="Остановить выполнение заданий",
+                                       callback_data=json.dumps({'type': 'lotery_stop'}))
+            keyboard.row(btn)
+            return 'Пока не получилось выполнить задание, попробуйте ввсети словосочетание из примера!', keyboard
 
     if not lotery_dict['req_statisfied'] and 'intent' in lotery_dict['search_types_list']:
         lotery_dict['req_statisfied'] = True
@@ -770,6 +782,7 @@ class Command(BaseCommand):
                 if repl_text:
                     await callback.message.answer(repl_text, reply_markup=keyboard,parse_mode="Markdown")
                     return
+
             if real_data['type']=='finish_lotery':
                 repl_text = """👏 Отлично, ваш шанс на победу удвоен! 👏
 
@@ -789,6 +802,13 @@ class Command(BaseCommand):
                                            caption=repl_text,
                                            reply_markup = keyboard,
                                            parse_mode="Markdown")
+            if real_data['type'] == 'lotery_stop':
+                user_context = json.loads(bot_user.context)
+                lotery_dict = [elem for elem in user_context if elem['type'] == 'lotery'][0]
+                lotery_dict['double_chance'] = False
+                bot_user.context = json.dumps(user_context)
+                await database_sync_to_async(bot_user.save)()
+                await callback.message.answer('Мини-игра остановлена')
 
 
 
