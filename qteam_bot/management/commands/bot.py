@@ -123,7 +123,7 @@ async def get_answer_by_lotery(req_type, bot_user):
             await database_sync_to_async(bot_user.save)()
             return req_type_to_text['prod'], req_type_to_keyboard['prod']
         else:
-            return None, None
+            return 'Пока не получилось выполнить задание, попробуйте ввсети словосочетание из примера!', InlineKeyboardMarkup()
     if 'prod' not in lotery_dict['search_types_list'] :
         if req_type == 'prod':
             lotery_dict['search_types_list'] = list(set(lotery_dict['search_types_list'] + [req_type]))
@@ -131,14 +131,14 @@ async def get_answer_by_lotery(req_type, bot_user):
             await database_sync_to_async(bot_user.save)()
             return req_type_to_text['intent'], req_type_to_keyboard['intent']
         else:
-            return None, None
+            return 'Пока не получилось выполнить задание, попробуйте ввсети словосочетание из примера!', InlineKeyboardMarkup()
     if 'intent' not in lotery_dict['search_types_list']:
         if req_type == 'intent':
             lotery_dict['search_types_list'] = list(set(lotery_dict['search_types_list'] + [req_type]))
             bot_user.context = json.dumps(user_context)
             await database_sync_to_async(bot_user.save)()
         else:
-            return None, None
+            return 'Пока не получилось выполнить задание, попробуйте ввсети словосочетание из примера!', InlineKeyboardMarkup()
 
     if not lotery_dict['req_statisfied'] and 'intent' in lotery_dict['search_types_list']:
         lotery_dict['req_statisfied'] = True
