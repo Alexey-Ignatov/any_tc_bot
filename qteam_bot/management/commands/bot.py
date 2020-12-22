@@ -652,7 +652,7 @@ class Command(BaseCommand):
 
 
             btn = InlineKeyboardButton(text="Условия конкурса",
-                                       url='https://www.tpsre.ru/upload/iblock/2ef/podpisannye-pravila.pdf')
+                                       url='https://oceania.ru/upload/news/bot_pravila.pdf')
             keyboard.row(btn)
             await asyncio.sleep(5)
             await message.answer(lotery_text,
