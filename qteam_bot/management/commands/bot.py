@@ -625,14 +625,14 @@ class Command(BaseCommand):
                                  'plist': -100}
                 btn = InlineKeyboardButton(text="Сокровища черной пятницы!",
                                            callback_data=json.dumps(callback_dict))
-                keyboard.row(btn)"""
+                keyboard.row(btn) """
 
             await message.answer_photo(self.bot_config['welcome_photo_url'],
                                        caption=self.bot_config['welcome_text'][:MAX_CAPTION_SIZE],
                                        reply_markup=keyboard,
                                        parse_mode="Markdown")
 
-    
+
 
         @self.dp.message_handler()
         async def msg_handler(message: types.Message):
