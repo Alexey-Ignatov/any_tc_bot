@@ -632,33 +632,7 @@ class Command(BaseCommand):
                                        reply_markup=keyboard,
                                        parse_mode="Markdown")
 
-            lotery_text = """🎁 Океания дарит подарки! 🎁
-Только что у вас появился шанс выиграть один из двух сертификатов:
-
-1️⃣ В немецкий магазин одежды FALKE, или...
-2️⃣ В спортивный магазин Reebok! 
-
-Выбирайте один из двух вариантов и участвуйте в конкурсе! Итоги подведем до 28.12.2020."""
-            keyboard = InlineKeyboardMarkup()
-            callback_dict = {'type': 'lotery_Falke'}
-            btn = InlineKeyboardButton(text="1️⃣ Хочу сертификат FALKE!",
-                                       callback_data=json.dumps(callback_dict))
-            keyboard.row(btn)
-
-            callback_dict = {'type': 'lotery_Reebok'}
-            btn = InlineKeyboardButton(text="2️⃣ Хочу сертификат Reebok!",
-                                       callback_data=json.dumps(callback_dict))
-            keyboard.row(btn)
-
-
-            btn = InlineKeyboardButton(text="Условия конкурса",
-                                       url='https://oceania.ru/upload/news/bot_pravila.pdf')
-            keyboard.row(btn)
-            await asyncio.sleep(5)
-            await message.answer(lotery_text,
-                                       reply_markup=keyboard,
-                                       parse_mode="Markdown")
-
+    
 
         @self.dp.message_handler()
         async def msg_handler(message: types.Message):
