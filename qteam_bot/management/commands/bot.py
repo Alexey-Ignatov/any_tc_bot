@@ -64,7 +64,7 @@ async def get_answer_by_lotery(req_type, bot_user):
     req_type_to_keyboard['intent'] = InlineKeyboardMarkup()
 
 
-    if req_type in ['lotery_Falke', 'lotery_Reebok']:
+    if req_type in ['lotery_LEGO', 'lotery_DC']:
         if [elem for elem in user_context if elem['type'] == 'lotery']:
             return 'Вы уже зарегистрирвоаны на лотерею!', InlineKeyboardMarkup()
         user_context += [{'type': 'lotery',
@@ -72,16 +72,16 @@ async def get_answer_by_lotery(req_type, bot_user):
                           'search_types_list':  [],
                           'req_statisfied': False,
                           'double_chance': False}]
-        if req_type == 'lotery_Falke':
-            user_context[-1]['lotery_branch'] = 'Falke'
+        if req_type == 'lotery_LEGO':
+            user_context[-1]['lotery_branch'] = 'LEGO'
         else:
-            user_context[-1]['lotery_branch'] = 'Reebok'
+            user_context[-1]['lotery_branch'] = 'DC'
         bot_user.context = json.dumps(user_context)
         await database_sync_to_async(bot_user.save)()
 
         repl_text = """⚡️Отлично, вы в игре! ⚡️
 
-Результаты конкурса будут объявлены до 28.12.2020, вам придет сообщение в этом чат-боте, не отключайтесь от него. 
+Результаты конкурса будут объявлены 11.01.2021, вам придет сообщение в этом чат-боте, не отключайтесь от него. 
 
 Хотите пройти мини-игру за 60 секунд и *удвоить* свой шанс на выигрыш?"""
 
@@ -614,24 +614,37 @@ class Command(BaseCommand):
 
             await database_sync_to_async(StartEvent.objects.create)(bot_user=bot_user, source=message.text.split('start')[-1])
             keyboard = InlineKeyboardMarkup()
-            """org = await database_sync_to_async(Store.objects.filter)(title="Черная Пятница", bot=self.acur_bot)
-            org = await sync_to_async(list)(org)
-            # keyboard = []
-            keyboard = InlineKeyboardMarkup()
-            if org:
-                org = org[0]
-                callback_dict = {'type': 'show_org',
-                                 'org_id': org.id,
-                                 'plist': -100}
-                btn = InlineKeyboardButton(text="Сокровища черной пятницы!",
-                                           callback_data=json.dumps(callback_dict))
-                keyboard.row(btn) """
+
 
             await message.answer_photo(self.bot_config['welcome_photo_url'],
                                        caption=self.bot_config['welcome_text'][:MAX_CAPTION_SIZE],
                                        reply_markup=keyboard,
                                        parse_mode="Markdown")
 
+            lotery_text = """🎁 Океания дарит подарки! 🎁
+Выиграйте набор LEGO или один из двух сертификатов в магазин спортивной одежды DC Store!
+
+Выбирайте один из двух вариантов и участвуйте в конкурсе. Итоги подведем 11.01.2021.
+"""
+            keyboard = InlineKeyboardMarkup()
+            callback_dict = {'type': 'lotery_LEGO'}
+            btn = InlineKeyboardButton(text="1️⃣ Хочу набор LEGO!",
+                                       callback_data=json.dumps(callback_dict))
+            keyboard.row(btn)
+
+            callback_dict = {'type': 'lotery_DC'}
+            btn = InlineKeyboardButton(text="2️⃣ Хочу сертификат DC Store!",
+                                       callback_data=json.dumps(callback_dict))
+            keyboard.row(btn)
+
+
+            btn = InlineKeyboardButton(text="Условия конкурса",
+                                       url='https://oceania.ru/upload/news/pravila-konkurs-bot.pdf')
+            keyboard.row(btn)
+            await asyncio.sleep(5)
+            await message.answer(lotery_text,
+                                       reply_markup=keyboard,
+                                       parse_mode="Markdown")
 
 
         @self.dp.message_handler()
@@ -751,7 +764,7 @@ class Command(BaseCommand):
 
                 await self.send_store_list(callback.message, org_id_to_some_data, [])
 
-            if real_data['type'] in ['lotery_Falke', 'lotery_Reebok', 'lotery_full']:
+            if real_data['type'] in ['lotery_LEGO', 'lotery_DC', 'lotery_full']:
                 repl_text, keyboard = await get_answer_by_lotery(real_data['type'], bot_user)
                 if repl_text:
                     await callback.message.answer(repl_text, reply_markup=keyboard,parse_mode="Markdown")
@@ -760,7 +773,7 @@ class Command(BaseCommand):
             if real_data['type']=='finish_lotery':
                 repl_text = """👏 Отлично, ваш шанс на победу удвоен! 👏
 
-Напоминаем, итоги конкурса будут подведены до 28.12.2020 в этом чат-боте. 
+Напоминаем, итоги конкурса будут подведены 11.01.2021 в этом чат-боте. 
 
 Пользуйтесь чат-ботом и задавайте ему любые вопросы о ТРЦ, на многие он сможет ответить (или, по крайней мере, узнать, что вам интересно и ответить в следующей версии)!
 
