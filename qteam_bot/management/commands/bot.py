@@ -64,7 +64,7 @@ async def get_answer_by_lotery(req_type, bot_user):
     req_type_to_keyboard['intent'] = InlineKeyboardMarkup()
 
 
-    if req_type in ['lotery_FALKE', 'lotery_Reebok']:
+    if req_type in ['lotery_LEGO', 'lotery_Reebok']:
         if [elem for elem in user_context if elem['type'] == 'lotery']:
             return 'Вы уже зарегистрирвоаны на лотерею!', InlineKeyboardMarkup()
         user_context += [{'type': 'lotery',
@@ -72,8 +72,8 @@ async def get_answer_by_lotery(req_type, bot_user):
                           'search_types_list':  [],
                           'req_statisfied': False,
                           'double_chance': False}]
-        if req_type == 'lotery_FALKE':
-            user_context[-1]['lotery_branch'] = 'FALKE'
+        if req_type == 'lotery_LEGO':
+            user_context[-1]['lotery_branch'] = 'LEGO'
         else:
             user_context[-1]['lotery_branch'] = 'Reebok'
         bot_user.context = json.dumps(user_context)
@@ -81,7 +81,7 @@ async def get_answer_by_lotery(req_type, bot_user):
 
         repl_text = """⚡️Отлично, вы в игре! ⚡️
 
-Результаты конкурса будут объявлены 23.02.2021, вам придет сообщение в этом чат-боте, не отключайтесь от него. 
+Результаты конкурса будут объявлены 08.03.2021, вам придет сообщение в этом чат-боте, не отключайтесь от него. 
 
 Хотите пройти мини-игру за 60 секунд и *удвоить* свой шанс на выигрыш?"""
 
@@ -621,14 +621,15 @@ class Command(BaseCommand):
                                        reply_markup=keyboard,
                                        parse_mode="Markdown")
 
-            lotery_text = """✨ Время стильных подарков! ✨
-Выиграйте сертификат номиналом 3 000 рублей на покупку модных носков в FALKE или сертификат номиналом 3 000 рублей на покупку модных вещей в Reebok!
+            lotery_text = """💐 Потрясающие подарки в честь начала весны! 💐
+Участвуйте в нашем новом конкурсе — выиграйте подарочный сертификат в Reebok номиналом 3 000 рублей или набор LEGO!
 
-Выбирайте один из двух вариантов и участвуйте в конкурсе. Итоги подведем 23.02.2021.
+Выбирайте, какой подарок вам нравится больше, и не забудьте удвоить шанс на победу!
+Итоги розыгрыша подведём 8 марта.
 """
             keyboard = InlineKeyboardMarkup()
-            callback_dict = {'type': 'lotery_FALKE'}
-            btn = InlineKeyboardButton(text="1️⃣ Хочу в FALKE!",
+            callback_dict = {'type': 'lotery_LEGO'}
+            btn = InlineKeyboardButton(text="1️⃣ Хочу LEGO!",
                                        callback_data=json.dumps(callback_dict))
             keyboard.row(btn)
 
@@ -764,7 +765,7 @@ class Command(BaseCommand):
 
                 await self.send_store_list(callback.message, org_id_to_some_data, [])
 
-            if real_data['type'] in ['lotery_FALKE', 'lotery_Reebok', 'lotery_full']:
+            if real_data['type'] in ['lotery_LEGO', 'lotery_Reebok', 'lotery_full']:
                 repl_text, keyboard = await get_answer_by_lotery(real_data['type'], bot_user)
                 if repl_text:
                     await callback.message.answer(repl_text, reply_markup=keyboard,parse_mode="Markdown")
@@ -773,7 +774,7 @@ class Command(BaseCommand):
             if real_data['type']=='finish_lotery':
                 repl_text = """👏 Отлично, ваш шанс на победу удвоен! 👏
 
-Напоминаем, итоги конкурса будут подведены 23.02.2021 в этом чат-боте. 
+Напоминаем, итоги конкурса будут подведены 08.03.2021 в этом чат-боте. 
 
 Пользуйтесь чат-ботом и задавайте ему любые вопросы о ТРЦ, на многие он сможет ответить (или, по крайней мере, узнать, что вам интересно и ответить в следующей версии)!
 
