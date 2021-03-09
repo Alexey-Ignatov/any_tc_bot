@@ -643,9 +643,9 @@ class Command(BaseCommand):
                                        url='https://oceania.ru/upload/news/pravila-konkurs-bot.pdf')
             keyboard.row(btn)
             await asyncio.sleep(5)
-            await message.answer(lotery_text,
-                                       reply_markup=keyboard,
-                                       parse_mode="Markdown")
+            #await message.answer(lotery_text,
+            #                           reply_markup=keyboard,
+            #                           parse_mode="Markdown")
 
 
         @self.dp.message_handler()
